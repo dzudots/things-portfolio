@@ -65,6 +65,12 @@ def detect_alerts_for_item(
     db.add(alert)
     db.commit()
     db.refresh(alert)
+    try:
+        from app.telegram.notify import notify_price_alert
+
+        notify_price_alert(alert, user)
+    except Exception:
+        logger.exception("Telegram alert push failed for user_id=%s", user.id)
     return alert
 
 

@@ -19,10 +19,12 @@
   </div>
 </div>
 
-<div class="achieve-grid">
+<div class="achieve-grid achieve-grid--stagger">
   {% for a in progress.list %}
-  <article class="achieve-card {% if a.unlocked %}achieve-card--on achieve-card--shine{% else %}achieve-card--off{% endif %}">
-    <div class="achieve-card__icon">{{ icons.icon(a.icon, 28) }}</div>
+  <article class="achieve-card {% if a.unlocked %}achieve-card--on achieve-card--shine{% else %}achieve-card--off{% endif %}" data-achieve-card style="--i: {{ loop.index0 }}">
+    <div class="achieve-card__icon">
+      {% if a.unlocked %}{{ icons.icon(a.icon, 28) }}{% else %}{{ icons.icon('lock', 22) }}{% endif %}
+    </div>
     <div>
       <div class="achieve-card__title">{{ a.title }}</div>
       <div class="achieve-card__desc">

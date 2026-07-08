@@ -10,10 +10,13 @@
     Фото → распознавание модели → диапазон по объявлениям (Avito/Kufar-style comps).
     Не маркетплейс: только оценка для твоего портфеля.
   </p>
-  <p class="muted small">
+  <p class="muted small scan-usage">
     Сегодня: <strong>{{ scans_used }}</strong> / {{ scans_limit }}
     · режим: {% if ai_ready %}live API{% else %}mock (без ключа){% endif %}
   </p>
+  <div class="usage-meter usage-meter--scan" aria-label="Использовано сканов сегодня">
+    <div class="usage-meter__fill" style="width:{{ [100, (100 * scans_used / scans_limit) | round(1)] | min }}%"></div>
+  </div>
 </section>
 
 {% if error %}
@@ -102,6 +105,12 @@
     {% endfor %}
   </ul>
 </section>
+{% else %}
+<div class="empty-box empty-box--compact">
+  <div class="empty-box__icon" aria-hidden="true">{{ icons.icon('camera', 32) }}</div>
+  <p class="empty-box__title">Сканов пока нет</p>
+  <p class="empty-box__hint">Загрузи фото — AI подберёт модель и оценку по comps.</p>
+</div>
 {% endif %}
 
 <p class="muted small">

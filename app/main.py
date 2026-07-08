@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
+from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
 from app.achievements import (
@@ -34,15 +35,27 @@ from app.auth import (
 )
 from app.config import (
     FREE_ITEM_LIMIT,
+    FREE_SCANS_PER_DAY,
     MAX_UPLOAD_BYTES,
+    PRO_SCANS_PER_DAY,
     PRODUCT_NAME,
     PRODUCT_TAGLINE,
     SESSION_COOKIE,
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_PATH,
+    TELEGRAM_WEBHOOK_SECRET,
     UPLOAD_DIR,
 )
 from app.fx import CURRENCY_META, DISPLAY_CURRENCIES, format_amount, get_rates
 from app.regions import city_choices
-from app.jobs import ingest_comp_aggregates, revalue_all_items, shutdown_scheduler, start_scheduler
+from app.comps.sources.registry import INGESTABLE_SOURCES, SOURCE_LABELS
+from app.jobs import (
+    ingest_comp_aggregates,
+    refresh_market_comps,
+    revalue_all_items,
+    shutdown_scheduler,
+    start_scheduler,
+)
 from app.metrics import compute_metrics, track_event
 from app.models import (
     CAR_DEFECTS,
@@ -64,6 +77,10 @@ from app.models import (
     utcnow,
 )
 from app.seed import run_seed
+from app.telegram.client import get_bot_username, telegram_configured
+from app.telegram.handlers import handle_update
+from app.telegram.linking import create_link_token, unlink_telegram
+from app.telegram.setup import setup_telegram, shutdown_telegram
 from app.valuation import (
     compute_valuation,
     display_mid,
@@ -233,11 +250,13 @@ def on_startup() -> None:
     finally:
         db.close()
     start_scheduler()
+    setup_telegram()
 
 
 @app.on_event("shutdown")
 def on_shutdown() -> None:
     shutdown_scheduler()
+    shutdown_telegram()
 
 
 def get_current_user(
@@ -852,6 +871,7 @@ def account_page(
     user: User = Depends(require_user),
     saved: Optional[str] = None,
 ):
+    is_pro = (user.plan or "free") == "pro"
     return templates.TemplateResponse(
         "account.html",
         {
@@ -860,6 +880,13 @@ def account_page(
             "saved": saved,
             "error": None,
             "currencies": DISPLAY_CURRENCIES,
+            "telegram_ready": telegram_configured(),
+            "telegram_bot_username": get_bot_username() if telegram_configured() else None,
+            "is_pro": is_pro,
+            "free_item_limit": FREE_ITEM_LIMIT,
+            "free_scans_limit": FREE_SCANS_PER_DAY,
+            "pro_scans_limit": PRO_SCANS_PER_DAY,
+            "scans_used": scans_today(db, user.id),
         },
     )
 
@@ -871,6 +898,7 @@ def account_save(
     alert_threshold_pct: Annotated[str, Form()] = "5",
     alerts_enabled: Annotated[Optional[str], Form()] = None,
     digest_enabled: Annotated[Optional[str], Form()] = None,
+    telegram_alerts_enabled: Annotated[Optional[str], Form()] = None,
     display_currency: Annotated[str, Form()] = "RUB",
     db: Session = Depends(get_db),
     user: User = Depends(require_user),
@@ -884,8 +912,53 @@ def account_save(
         user.alert_threshold_pct = 5.0
     user.alerts_enabled = alerts_enabled is not None
     user.digest_enabled = digest_enabled is not None
+    if user.telegram_chat_id:
+        user.telegram_alerts_enabled = telegram_alerts_enabled is not None
     db.commit()
     return RedirectResponse("/account?saved=1", status_code=303)
+
+
+@app.post("/account/telegram/link")
+def account_telegram_link(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    if not telegram_configured():
+        raise HTTPException(status_code=503, detail="Telegram bot is not configured")
+    username = get_bot_username()
+    if not username:
+        raise HTTPException(status_code=503, detail="Could not resolve Telegram bot username")
+    token = create_link_token(db, user)
+    return RedirectResponse(
+        f"https://t.me/{username}?start=link_{token}",
+        status_code=303,
+    )
+
+
+@app.post("/account/telegram/unlink")
+def account_telegram_unlink(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    unlink_telegram(db, user)
+    return RedirectResponse("/account?saved=1", status_code=303)
+
+
+@app.post(TELEGRAM_WEBHOOK_PATH)
+async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=404, detail="Not configured")
+    if TELEGRAM_WEBHOOK_SECRET:
+        secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        if secret != TELEGRAM_WEBHOOK_SECRET:
+            raise HTTPException(status_code=403, detail="Invalid webhook secret")
+    try:
+        update = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    if isinstance(update, dict):
+        handle_update(db, update)
+    return {"ok": True}
 
 
 @app.get("/account/export")
@@ -912,6 +985,7 @@ def account_delete(
     user: User = Depends(require_user),
 ):
     if confirm.strip().upper() != "УДАЛИТЬ":
+        is_pro = (user.plan or "free") == "pro"
         return templates.TemplateResponse(
             "account.html",
             {
@@ -919,6 +993,14 @@ def account_delete(
                 "user": user,
                 "saved": None,
                 "error": "Чтобы удалить аккаунт, введите слово УДАЛИТЬ",
+                "currencies": DISPLAY_CURRENCIES,
+                "telegram_ready": telegram_configured(),
+                "telegram_bot_username": get_bot_username() if telegram_configured() else None,
+                "is_pro": is_pro,
+                "free_item_limit": FREE_ITEM_LIMIT,
+                "free_scans_limit": FREE_SCANS_PER_DAY,
+                "pro_scans_limit": PRO_SCANS_PER_DAY,
+                "scans_used": scans_today(db, user.id),
             },
             status_code=400,
         )
@@ -957,12 +1039,24 @@ def _scan_job_payload(job: ScanJob) -> dict:
 
 
 @app.get("/health")
-def health():
-    return {
-        "ok": True,
+def health(db: Session = Depends(get_db)):
+    db_ok = False
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        pass
+
+    payload = {
+        "ok": db_ok,
+        "db_ok": db_ok,
         "ai_provider_ready": provider_ready(),
         "product": PRODUCT_NAME,
+        "telegram_configured": telegram_configured(),
     }
+    if not db_ok:
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @app.get("/scan", response_class=HTMLResponse)
@@ -1160,12 +1254,35 @@ def api_revalue(user: User = Depends(require_user)):
     return {"revalued": n}
 
 
+@app.get("/api/admin/comps/sources")
+def api_comps_sources(user: User = Depends(require_user)):
+    return {
+        "sources": [
+            {"id": s, "label": SOURCE_LABELS.get(s, s), "ingestable": True}
+            for s in sorted(INGESTABLE_SOURCES)
+        ]
+    }
+
+
 @app.post("/api/admin/comps/ingest")
 def api_comps_ingest(
     payload: dict,
     db: Session = Depends(get_db),
     user: User = Depends(require_user),
 ):
+    source = str(payload.get("source") or "manual_json").strip()
+    if source not in INGESTABLE_SOURCES:
+        raise HTTPException(400, f"source not allowed: {source}")
     rows = payload.get("rows") or []
-    n = ingest_comp_aggregates(db, rows)
-    return {"ingested": n}
+    if not rows:
+        raise HTTPException(400, "rows required")
+    result = ingest_comp_aggregates(db, rows, source=source)
+    return result.as_dict()
+
+
+@app.post("/api/admin/comps/refresh")
+def api_comps_refresh(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    return refresh_market_comps(db)

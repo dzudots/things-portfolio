@@ -36,7 +36,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 На телефоне: откройте сайт → баннер «Установить» / iOS: Поделиться → «На экран Домой».
 
-Smoke на проде: `python scripts/prod_smoke.py`
+Smoke на проде: `python scripts/prod_smoke.py` (или `THINGS_PROD_URL=https://... python scripts/prod_smoke.py`)
 
 ## Возможности
 
@@ -66,4 +66,45 @@ THINGS_PRO_SCANS_PER_DAY=50
 
 API: `POST /api/scan` (multipart `photo`), `GET /api/usage`, `GET /health`.
 
+**Comps ingest (admin, logged-in):**
+- `GET /api/admin/comps/sources` — whitelist source ids
+- `POST /api/admin/comps/ingest` — body `{"source":"manual_json","rows":[...]}`
+- `POST /api/admin/comps/refresh` — mock market refresh (scheduled 02:00 UTC)
+- CLI: `python scripts/ingest_comps.py data/sample_comps_ingest.json`
+
 Наценка на AI: **10–30%** от estimated provider cost (дешёвые модели ближе к 10–15%, тяжёлые vision — до 30%). Цель сейчас — стабильность продукта; пассивный доход вторичен.
+
+## Деплой (Railway + GitHub)
+
+Репозиторий: [dzudots/things-portfolio](https://github.com/dzudots/things-portfolio). Прод: Railway, сборка по `Dockerfile` и `railway.toml`.
+
+### Поток
+
+1. **Push в `master`** → Railway пересобирает контейнер и ждёт `GET /health` (200 + `db_ok: true`).
+2. **GitHub Actions** (`.github/workflows/ci.yml`):
+   - на каждый push/PR — `python -m unittest discover -s tests`;
+   - после успешных тестов на push в `master` — опциональный `scripts/prod_smoke.py` против прод-URL.
+3. Локально перед push: `python -m unittest discover -s tests -v`.
+
+### Переменные Railway
+
+Обязательные для стабильного прода:
+
+| Переменная | Назначение |
+|------------|------------|
+| `THINGS_SECRET_KEY` | сессии, подписи |
+| `THINGS_DATA_KEY` | Fernet для полей портфеля |
+| `DATABASE_URL` или `THINGS_DATABASE_URL` | Postgres (рекомендуется) |
+| `THINGS_UPLOAD_DIR` | `/data/uploads/scans` (volume) |
+
+Опционально: `THINGS_AI_*` (без ключа — mock-режим скана).
+
+### Секреты GitHub Actions
+
+| Secret | Обязателен | Описание |
+|--------|------------|----------|
+| `THINGS_PROD_URL` | нет | Базовый URL прода, напр. `https://things-portfolio-production.up.railway.app`. Без секрета prod smoke пропускается. |
+
+### Health
+
+`GET /health` → `{"ok": true, "db_ok": true, "ai_provider_ready": bool, "telegram_configured": bool, "product": "Стак"}`. При недоступной БД — HTTP 503, Railway/Docker не считают инстанс здоровым.

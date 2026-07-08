@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import bcrypt
+
+# passlib 1.7.x expects bcrypt.__about__.__version__ (removed in bcrypt 4.1+)
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("_About", (), {"__version__": bcrypt.__version__})()  # type: ignore[attr-defined]
+
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 

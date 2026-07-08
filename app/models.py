@@ -125,6 +125,15 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    # Telegram (optional alert push; linked via one-time deep-link token)
+    telegram_chat_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    telegram_username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    telegram_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    telegram_link_token: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    telegram_link_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     items: Mapped[list["Item"]] = relationship(back_populates="owner")
     events: Mapped[list["UserEvent"]] = relationship(back_populates="user")
     alerts: Mapped[list["PriceAlert"]] = relationship(back_populates="user")
@@ -407,6 +416,17 @@ def _migrate_sqlite() -> None:
             conn.exec_driver_sql(
                 "ALTER TABLE users ADD COLUMN display_currency VARCHAR(8) DEFAULT 'RUB'"
             )
+        _telegram_cols = {
+            "telegram_chat_id": "VARCHAR(32)",
+            "telegram_username": "VARCHAR(64)",
+            "telegram_alerts_enabled": "BOOLEAN DEFAULT 0",
+            "telegram_link_token": "VARCHAR(64)",
+            "telegram_link_expires_at": "DATETIME",
+        }
+        cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")}
+        for name, ddl in _telegram_cols.items():
+            if cols and name not in cols:
+                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {name} {ddl}")
 
 
 def _migrate_postgres() -> None:
@@ -419,6 +439,21 @@ def _migrate_postgres() -> None:
         )
         conn.exec_driver_sql(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_currency VARCHAR(8) DEFAULT 'RUB'"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(32)"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(64)"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_alerts_enabled BOOLEAN DEFAULT FALSE"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_expires_at TIMESTAMPTZ"
         )
 
 

@@ -60,3 +60,13 @@ PRO_SCANS_PER_DAY = int(os.getenv("THINGS_PRO_SCANS_PER_DAY", "50"))
 MAX_UPLOAD_BYTES = int(os.getenv("THINGS_MAX_UPLOAD_BYTES", str(4 * 1024 * 1024)))
 
 UPLOAD_DIR = Path(os.getenv("THINGS_UPLOAD_DIR", str(BASE_DIR / "uploads" / "scans")))
+
+# --- Telegram (optional: distribution + alert push) ---
+TELEGRAM_BOT_TOKEN = os.getenv("THINGS_TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.getenv("THINGS_TELEGRAM_BOT_USERNAME", "")
+TELEGRAM_WEBHOOK_SECRET = os.getenv("THINGS_TELEGRAM_WEBHOOK_SECRET", "")
+TELEGRAM_WEBHOOK_PATH = os.getenv("THINGS_TELEGRAM_WEBHOOK_PATH", "/api/telegram/webhook")
+# Public HTTPS base for webhook + deep links (e.g. https://things-portfolio-production.up.railway.app)
+PUBLIC_BASE_URL = os.getenv("THINGS_PUBLIC_BASE_URL", "").rstrip("/")
+# Local dev only — long-polling instead of webhook (do not use in prod with multiple workers)
+TELEGRAM_POLLING = os.getenv("THINGS_TELEGRAM_POLLING", "").lower() in {"1", "true", "yes"}

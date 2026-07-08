@@ -22,4 +22,87 @@
       setTimeout(() => p.remove(), 1600);
     }
   }
+
+  initSwipeRows();
+  initAchievementStagger();
+
+  function initSwipeRows() {
+    const rows = document.querySelectorAll("[data-swipe]");
+    if (!rows.length) return;
+
+    rows.forEach((row) => {
+      const panel = row.querySelector(".swipe-row__panel");
+      const actions = row.querySelector(".swipe-row__actions");
+      if (!panel || !actions) return;
+
+      const width = actions.offsetWidth;
+      row.style.setProperty("--swipe-width", `${width}px`);
+
+      let startX = 0;
+      let currentX = 0;
+      let dragging = false;
+
+      const setOffset = (dx) => {
+        const clamped = Math.max(-width, Math.min(0, dx));
+        panel.style.transform = `translateX(${clamped}px)`;
+        return clamped;
+      };
+
+      const snap = (dx) => {
+        panel.style.transform = "";
+        if (dx < -width * 0.35) row.classList.add("is-open");
+        else row.classList.remove("is-open");
+      };
+
+      panel.addEventListener(
+        "touchstart",
+        (e) => {
+          if (e.touches.length !== 1) return;
+          startX = e.touches[0].clientX;
+          currentX = row.classList.contains("is-open") ? -width : 0;
+          dragging = true;
+        },
+        { passive: true }
+      );
+
+      panel.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!dragging) return;
+          const dx = currentX + (e.touches[0].clientX - startX);
+          if (Math.abs(dx) > 8) setOffset(dx);
+        },
+        { passive: true }
+      );
+
+      panel.addEventListener("touchend", (e) => {
+        if (!dragging) return;
+        dragging = false;
+        const endX = e.changedTouches[0].clientX;
+        const total = currentX + (endX - startX);
+        snap(total);
+      });
+
+      panel.addEventListener("touchcancel", () => {
+        dragging = false;
+        panel.style.transform = "";
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("[data-swipe]")) {
+        rows.forEach((r) => r.classList.remove("is-open"));
+      }
+    });
+  }
+
+  function initAchievementStagger() {
+    const grid = document.querySelector(".achieve-grid--stagger");
+    if (!grid) return;
+    requestAnimationFrame(() => {
+      grid.classList.add("is-ready");
+      const statVal = document.querySelector(".stat .value");
+      if (statVal) statVal.classList.add("value--pop");
+    });
+  }
 })();

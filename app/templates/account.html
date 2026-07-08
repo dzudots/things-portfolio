@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Аккаунт — {{ product_name }}{% endblock %}
 {% block content %}
+{% import "icons.html" as icons %}
 <section class="page-head">
   <div>
     <h1 class="page-title">Аккаунт</h1>
@@ -10,6 +11,53 @@
 
 {% if saved %}<div class="success-banner">Сохранено.</div>{% endif %}
 {% if error %}<div class="error" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
+
+<div class="panel pro-plan {% if is_pro %}pro-plan--active{% endif %}">
+  <div class="pro-plan__head">
+    <div>
+      <span class="pro-plan__eyebrow">{{ icons.icon('crown', 14, 'icon--inline') }} Тариф</span>
+      <strong class="pro-plan__title">{% if is_pro %}Pro{% else %}Free{% endif %}</strong>
+    </div>
+    {% if is_pro %}
+    <span class="badge">активен</span>
+    {% else %}
+    <span class="badge warn">free</span>
+    {% endif %}
+  </div>
+
+  <div class="plan-compare">
+    <div class="plan-compare__col {% if not is_pro %}plan-compare__col--current{% endif %}">
+      <div class="plan-compare__label">Free</div>
+      <ul class="plan-compare__list">
+        <li>{{ free_item_limit }} вещей в стаке</li>
+        <li>{{ free_scans_limit }} AI-сканов / день</li>
+        <li>Базовые алерты</li>
+      </ul>
+    </div>
+    <div class="plan-compare__col {% if is_pro %}plan-compare__col--current{% endif %} plan-compare__col--pro">
+      <div class="plan-compare__label">Pro</div>
+      <ul class="plan-compare__list">
+        <li>Без лимита вещей</li>
+        <li>{{ pro_scans_limit }} AI-сканов / день</li>
+        <li>Пассивный доход <span class="muted">(скоро)</span></li>
+        <li>Приоритет comps</li>
+      </ul>
+    </div>
+  </div>
+
+  {% if not is_pro %}
+  <p class="pro-plan__usage muted small">Сегодня сканов: <strong>{{ scans_used }}</strong> / {{ free_scans_limit }}</p>
+  <div class="usage-meter" aria-hidden="true">
+    <div class="usage-meter__fill" style="width:{{ [100, (100 * scans_used / free_scans_limit) | round(1)] | min }}%"></div>
+  </div>
+  <button type="button" class="btn btn-primary btn-block pro-plan__cta" id="proUpgrade">
+    {{ icons.icon('crown', 16) }} Перейти на Pro
+  </button>
+  <p class="pro-plan__note muted small">Оплата скоро. Пока это заглушка — без списаний.</p>
+  {% else %}
+  <p class="muted small" style="margin:0">Спасибо за Pro. Пассивный доход появится в следующих обновлениях.</p>
+  {% endif %}
+</div>
 
 <div class="panel">
   <strong>Профиль и уведомления</strong>
@@ -40,6 +88,30 @@
   </form>
 </div>
 
+{% if telegram_ready %}
+<div class="panel">
+  <strong>Telegram</strong>
+  {% if user.telegram_chat_id %}
+  <p class="muted small">
+    Привязан{% if user.telegram_username %} · @{{ user.telegram_username }}{% endif %}
+  </p>
+  <label class="chip" style="justify-content:flex-start">
+    <input type="checkbox" name="telegram_alerts_enabled" form="account-form" {% if user.telegram_alerts_enabled %}checked{% endif %} />
+    Push-алерты в Telegram
+  </label>
+  <p class="muted small">Сохрани настройки выше, чтобы включить или выключить push.</p>
+  <form method="post" action="/account/telegram/unlink" style="margin-top:0.75rem" onsubmit="return confirm('Отвязать Telegram?');">
+    <button class="btn btn-secondary" type="submit">Отвязать Telegram</button>
+  </form>
+  {% else %}
+  <p class="muted">Получай алерты о движении цены прямо в Telegram — без email.</p>
+  <form method="post" action="/account/telegram/link">
+    <button class="btn btn-secondary" type="submit">Подключить Telegram</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="panel">
   <strong>Конфиденциальность</strong>
   <p class="muted">Цена покупки и заметки хранятся в зашифрованном виде. Мы не собираем ИНН/VIN/паспорт.</p>
@@ -57,4 +129,16 @@
     <button class="btn btn-danger" type="submit">Удалить всё</button>
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("proUpgrade")?.addEventListener("click", () => {
+    const note = document.querySelector(".pro-plan__note");
+    if (note) {
+      note.textContent = "Оплата в разработке. Напиши в поддержку, если нужен тестовый Pro.";
+      note.classList.add("pro-plan__note--flash");
+    }
+  });
+</script>
 {% endblock %}

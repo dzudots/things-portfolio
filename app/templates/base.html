@@ -16,16 +16,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=8" />
+  <link rel="stylesheet" href="/static/styles.css?v=9" />
 </head>
 <body data-currency="{{ currency }}">
   {% import "icons.html" as icons %}
   {% set path = request.url.path %}
   <div class="wrap">
     <header class="site-header">
-      <a class="brand" href="{% if user %}/portfolio{% else %}/{% endif %}" aria-label="{{ product_name }}">
-        <span class="brand__mark" aria-hidden="true"></span>{{ product_name }}<span>.</span>
-      </a>
+      <div class="site-header__start">
+        <a class="brand" href="{% if user %}/portfolio{% else %}/{% endif %}" aria-label="{{ product_name }}">
+          <span class="brand__mark" aria-hidden="true"></span>{{ product_name }}<span>.</span>
+        </a>
+        {% if user and currency %}
+        <a class="currency-badge" href="/account" title="Валюта: {{ CURRENCY_META[currency].label }}">
+          <span class="currency-badge__sym">{{ CURRENCY_META[currency].symbol }}</span>
+          <span class="currency-badge__code">{{ currency }}</span>
+        </a>
+        {% endif %}
+      </div>
       <nav class="nav desktop-nav" aria-label="Меню">
         {% if user %}
           <a href="/portfolio" class="{% if path.startswith('/portfolio') or path.startswith('/items/') %}is-active{% endif %}">{{ icons.icon('portfolio', 16) }} Портфель</a>
@@ -86,7 +94,7 @@
 
   <script>window.THINGS_CURRENCY = document.body.dataset.currency || "RUB"; window.THINGS_FX = {{ fx_rates | tojson }};</script>
   <script src="/static/charts.js?v=3"></script>
-  <script src="/static/animations.js?v=1"></script>
+  <script src="/static/animations.js?v=2"></script>
   <script src="/static/pwa-install.js?v=2"></script>
   <script>
     if ("serviceWorker" in navigator) {

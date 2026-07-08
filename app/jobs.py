@@ -9,7 +9,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session, joinedload
 
 from app.alerts import build_weekly_digests, detect_alerts_for_item
-from app.models import CompListing, Item, SessionLocal, User, utcnow
+from app.comps.ingest import IngestResult, ingest_comp_rows
+from app.comps.sources.mock_market import MockMarketSource
+from app.models import Item, SessionLocal, User, utcnow
 from app.valuation import save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -43,29 +45,37 @@ def revalue_all_items(db: Session | None = None) -> int:
 def ingest_comp_aggregates(
     db: Session,
     rows: Iterable[dict],
-) -> int:
+    *,
+    source: str = "manual_json",
+) -> IngestResult:
     """
-    Phase B: accept normalized aggregate comps from a partner/API feed.
-    Stores metadata/aggregates only — not tied to any user identity.
+    Accept normalized aggregate comps from partner/API/manual feed.
+    Dedupes on (source, external_ref); stores local RUB prices + geo metadata.
     """
-    n = 0
-    for row in rows:
-        db.add(
-            CompListing(
-                model_id=row["model_id"],
-                condition_bucket=row["condition_bucket"],
-                defects=row.get("defects", ""),
-                price=float(row["price"]),
-                region=row.get("region", "Россия"),
-                city=row.get("city", "Россия"),
-                source=row.get("source", "partner_feed"),
-                external_ref=row.get("external_ref"),
-                observed_at=row.get("observed_at") or utcnow(),
-            )
-        )
-        n += 1
-    db.commit()
-    return n
+    return ingest_comp_rows(db, rows, source=source)
+
+
+def refresh_market_comps(db: Session | None = None) -> dict:
+    """
+    Scheduled stub: refresh stale seed/partner comps via mock_market adapter.
+    Production path: swap MockMarketSource for avito_api / kufar_api adapters.
+    """
+    own = db is None
+    if own:
+        db = SessionLocal()
+    try:
+        adapter = MockMarketSource()
+        rows = adapter.fetch_rows(db)
+        if not rows:
+            return {"refreshed": 0, "inserted": 0, "updated": 0, "skipped": 0}
+        result = ingest_comp_rows(db, rows, source=adapter.source_id)
+        out = result.as_dict()
+        out["refreshed"] = result.ingested
+        revalue_all_items(db)
+        return out
+    finally:
+        if own:
+            db.close()
 
 
 def start_scheduler() -> BackgroundScheduler:
@@ -73,6 +83,14 @@ def start_scheduler() -> BackgroundScheduler:
     if scheduler is not None:
         return scheduler
     scheduler = BackgroundScheduler(timezone="UTC")
+    scheduler.add_job(
+        refresh_market_comps,
+        trigger="cron",
+        hour=2,
+        minute=0,
+        id="market_comp_refresh",
+        replace_existing=True,
+    )
     scheduler.add_job(
         revalue_all_items,
         trigger="cron",
@@ -91,7 +109,9 @@ def start_scheduler() -> BackgroundScheduler:
         replace_existing=True,
     )
     scheduler.start()
-    logger.info("Scheduler started: revaluation 03:00 UTC, digest Mon 07:00 UTC")
+    logger.info(
+        "Scheduler started: market refresh 02:00 UTC, revaluation 03:00 UTC, digest Mon 07:00 UTC"
+    )
     return scheduler
 
 

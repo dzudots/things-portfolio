@@ -82,45 +82,60 @@
   {% endif %}
 
   {% if rows %}
-  <ul class="thing-list">
+  <ul class="thing-list thing-list--swipe">
     {% for row in rows %}
-    <li>
-      <a class="thing" href="/items/{{ row.item.id }}">
-        <div class="thing__icon thing__icon--{{ row.item.category }}" aria-hidden="true">
-          {{ icons.cat_icon(row.item.category, 20) }}
-        </div>
-        <div class="thing__left">
-          <div class="thing__name">{{ row.name }}</div>
-          <div class="thing__meta">
-            {{ CONDITION_LABELS.get(row.item.condition, row.item.condition) }}
-            · {{ row.item.location_city }}
-            {% if row.item.override_mid is not none %} · своя{% endif %}
+    <li class="swipe-row" data-swipe>
+      <div class="swipe-row__actions" aria-hidden="true">
+        <a class="swipe-action swipe-action--accent" href="/items/{{ row.item.id }}#condition" title="Состояние">
+          {{ icons.icon('refresh', 18) }}
+          <span>Состояние</span>
+        </a>
+        <a class="swipe-action swipe-action--muted" href="/items/{{ row.item.id }}" title="Карточка">
+          {{ icons.icon('arrow-right', 18) }}
+          <span>Открыть</span>
+        </a>
+      </div>
+      <div class="swipe-row__panel">
+        <a class="thing" href="/items/{{ row.item.id }}">
+          <div class="thing__icon thing__icon--{{ row.item.category }}" aria-hidden="true">
+            {{ icons.cat_icon(row.item.category, 20) }}
           </div>
-          {% if row.spark_json and row.spark_json != '[]' %}
-          <canvas class="sparkline sparkline--row" data-points='{{ row.spark_json }}' width="72" height="20"></canvas>
-          {% endif %}
-        </div>
-        <div class="thing__right">
-          <div class="thing__price">{{ row.mid | money }}</div>
-          {% if row.week_pct is not none and row.week_pct|abs >= 0.3 %}
-          <span class="pill pill--sm {% if row.week_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
-            {% if row.week_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
-            {{ row.week_pct | pct }}
-          </span>
-          {% elif row.delta_pct is not none and row.delta_pct|abs >= 0.3 %}
-          <span class="pill pill--sm {% if row.delta_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
-            {% if row.delta_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
-            {{ row.delta_pct | pct }}
-          </span>
-          {% endif %}
-        </div>
-      </a>
+          <div class="thing__left">
+            <div class="thing__name">{{ row.name }}</div>
+            <div class="thing__meta">
+              {{ CONDITION_LABELS.get(row.item.condition, row.item.condition) }}
+              · {{ row.item.location_city }}
+              {% if row.item.override_mid is not none %} · своя{% endif %}
+            </div>
+            {% if row.spark_json and row.spark_json != '[]' %}
+            <canvas class="sparkline sparkline--row" data-points='{{ row.spark_json }}' width="72" height="20"></canvas>
+            {% endif %}
+          </div>
+          <div class="thing__right">
+            <div class="thing__price">{{ row.mid | money }}</div>
+            {% if row.week_pct is not none and row.week_pct|abs >= 0.3 %}
+            <span class="pill pill--sm {% if row.week_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+              {% if row.week_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
+              {{ row.week_pct | pct }}
+            </span>
+            {% elif row.delta_pct is not none and row.delta_pct|abs >= 0.3 %}
+            <span class="pill pill--sm {% if row.delta_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+              {% if row.delta_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
+              {{ row.delta_pct | pct }}
+            </span>
+            {% endif %}
+          </div>
+        </a>
+      </div>
     </li>
     {% endfor %}
   </ul>
+  <p class="swipe-hint muted small">Свайп влево — быстрые действия</p>
   {% else %}
-  <div class="empty-box">
-    <p>Пока пусто. Сфоткай или добавь первую вещь.</p>
+  <div class="empty-box empty-box--rich">
+    <div class="empty-box__icon" aria-hidden="true">{{ icons.icon('box', 44) }}</div>
+    <p class="empty-box__title">Стак пустой</p>
+    <p class="empty-box__hint">Сфоткай вещь или добавь вручную — увидишь рыночную цену по comps СНГ.</p>
     <div class="empty-box__actions">
       <a class="btn btn-primary" href="/scan">{{ icons.icon('camera', 16) }} Скан</a>
       <a class="btn btn-secondary" href="/items/new">{{ icons.icon('plus', 16) }} Добавить</a>

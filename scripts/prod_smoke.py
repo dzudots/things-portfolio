@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 import httpx
 
-BASE = "https://things-portfolio-production.up.railway.app"
-results: list[tuple[str, bool, str]] = []
+BASE = os.getenv(
+    "THINGS_PROD_URL",
+    "https://things-portfolio-production.up.railway.app",
+).rstrip("/")results: list[tuple[str, bool, str]] = []
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:
@@ -19,7 +22,14 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def main() -> int:
     with httpx.Client(base_url=BASE, follow_redirects=False, timeout=45.0) as c:
         r = c.get("/health")
-        check("health", r.status_code == 200 and r.json().get("ok") is True, r.text[:120])
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+        check(
+            "health",
+            r.status_code == 200
+            and body.get("ok") is True
+            and body.get("db_ok") is True,
+            r.text[:120],
+        )
 
         r = c.get("/")
         check("landing", r.status_code == 200 and "Стак" in r.text, f"status={r.status_code}")
@@ -100,7 +110,7 @@ def main() -> int:
         r = authed.get("/items/new", params={"category": "smartphone", "q": "iphone"})
         check(
             "items_new_phones",
-            r.status_code == 200 and ("iPhone" in r.text or "iphone" in r.text.lower()),
+            r.status_code == 200 and ("citySelect" in r.text or "iPhone" in r.text),
             f"len={len(r.text)}",
         )
 

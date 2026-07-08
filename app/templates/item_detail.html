@@ -62,7 +62,7 @@
 </section>
 {% endif %}
 
-<details class="block block--details">
+<details class="block block--details" id="condition">
   <summary class="block__summary">поменять состояние</summary>
   <form class="form" method="post" action="/items/{{ item.id }}/condition">
     <div class="condition-grid">
@@ -117,5 +117,9 @@
     history.map((h) => ({ label: h.date, value: h.mid })),
     { format: money }
   );
+  if (location.hash === "#condition") {
+    document.getElementById("condition")?.setAttribute("open", "");
+    document.getElementById("condition")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 </script>
 {% endblock %}
