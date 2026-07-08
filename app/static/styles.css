@@ -504,6 +504,64 @@ a:hover { text-decoration: underline; }
 }
 .value-block__pnl { margin-top: 0.65rem; font-size: 0.9rem; }
 .value-block__note { margin-top: 0.35rem; font-size: 0.84rem; color: var(--muted); }
+.value-block__comps { margin-top: 0.55rem; }
+
+.sell-signal {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1rem 1.05rem;
+  margin-bottom: 0.7rem;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--accent);
+}
+.sell-signal--sell_now { border-left-color: var(--down); }
+.sell-signal--wait { border-left-color: var(--up); }
+.sell-signal--refresh_listing { border-left-color: #c9852a; }
+.sell-signal--uncertain { border-left-color: var(--muted); }
+.sell-signal__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--muted);
+}
+.sell-signal__action {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0.2rem 0 0.35rem;
+  text-transform: lowercase;
+}
+.sell-signal__headline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.sell-signal__reason {
+  margin: 0.4rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.sell-signal__trend {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+.sell-signal__money {
+  margin: 0.7rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 0.55rem 0.65rem;
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+  border-radius: 8px;
+}
+.sell-signal__honest { margin-top: 0.75rem; margin-bottom: 0; }
+
 .why-details {
   margin-top: 0.75rem;
   border-top: 1px solid var(--line);

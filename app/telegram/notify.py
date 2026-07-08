@@ -31,9 +31,10 @@ def notify_price_alert(alert: PriceAlert, user: User) -> bool:
     if not user.alerts_enabled:
         return False
 
-    arrow = "📈" if alert.direction == "up" else "📉"
+    arrow = "📉" if alert.direction == "down" else "📈"
     text = f"{arrow} {PRODUCT_NAME}\n{alert.message}"
-    ok = send_message(user.telegram_chat_id, text, reply_markup=_markup("/alerts"))
+    item_path = f"/items/{alert.item_id}" if alert.item_id else "/alerts"
+    ok = send_message(user.telegram_chat_id, text, reply_markup=_markup(item_path))
     if ok:
         logger.info("Telegram alert sent user_id=%s alert_id=%s", user.id, alert.id)
     return ok

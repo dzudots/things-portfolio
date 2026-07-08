@@ -95,6 +95,7 @@ from app.telegram.handlers import handle_update
 from app.telegram.linking import create_link_token, unlink_telegram
 from app.telegram.setup import setup_telegram, shutdown_telegram
 from app.telegram.webapp import user_from_init_data, validate_init_data
+from app.sell_signal import FRIEND_LOOP_STEPS, build_sell_signal
 from app.valuation import (
     compute_valuation,
     display_mid,
@@ -723,6 +724,17 @@ def item_detail(
     delta_pct = _pct(item.cost_basis, mid) if item.cost_basis else None
     past_mid = week_ago_mid(item.valuations)
     week_pct = _pct(past_mid, mid if item.override_mid is None else item.override_mid)
+    sell = build_sell_signal(
+        mid=mid,
+        valuations=item.valuations or [],
+        comps_count=market.comps_count,
+        insufficient_data=market.insufficient_data,
+        freshness_days=market.freshness_days,
+        confidence=market.confidence,
+        low=market.low,
+        high=market.high,
+        trend_days=30,
+    )
 
     history = [
         {
@@ -748,6 +760,7 @@ def item_detail(
             "delta": delta,
             "delta_pct": delta_pct,
             "week_pct": week_pct,
+            "sell": sell,
             "history_json": json.dumps(history, ensure_ascii=False),
             "conditions": list(Condition),
             "defects": defects,
@@ -885,6 +898,21 @@ def alerts_mark_read(
 ):
     mark_alerts_read(db, user.id)
     return RedirectResponse("/alerts", status_code=303)
+
+
+@app.get("/friend-loop", response_class=HTMLResponse)
+def friend_loop_page(
+    request: Request,
+    user: User = Depends(require_user),
+):
+    return templates.TemplateResponse(
+        "friend_loop.html",
+        {
+            "request": request,
+            "user": user,
+            "friend_loop_steps": FRIEND_LOOP_STEPS,
+        },
+    )
 
 
 @app.post("/api/admin/digest")

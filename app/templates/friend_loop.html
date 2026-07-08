@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Friend loop — {{ product_name }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1 class="page-title">Friend loop</h1>
+    <p class="page-sub">5–10 друзей · один сценарий: «стоит ли продавать сейчас?»</p>
+  </div>
+</section>
+
+<div class="panel">
+  <strong>Критерий</strong>
+  <p class="muted" style="margin:0.5rem 0 0">
+    Друг открывает одну вещь и за &lt;10 секунд знает: продать / подождать / почему.
+    Слабые comps не выглядят как точный mid.
+  </p>
+</div>
+
+<div class="panel">
+  <strong>Чеклист</strong>
+  <ol style="margin:0.75rem 0 0;padding-left:1.2rem;display:grid;gap:0.55rem">
+    {% for step in friend_loop_steps %}
+    <li>{{ step }}</li>
+    {% endfor %}
+  </ol>
+  <p class="muted small" style="margin-top:1rem">
+    Не раздувай демо: портфель, Pro, Mini App — потом. Сейчас только карточка вещи.
+  </p>
+  <a class="btn btn-primary" href="/portfolio" style="margin-top:0.75rem">К стаку</a>
+</div>
+{% endblock %}

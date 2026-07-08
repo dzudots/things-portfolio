@@ -19,13 +19,42 @@
   {% endif %}
 </section>
 
+<section class="sell-signal sell-signal--{{ sell.action }}">
+  <p class="sell-signal__eyebrow">стоит ли продавать сейчас?</p>
+  <div class="sell-signal__action">{{ sell.action_label }}</div>
+  <p class="sell-signal__headline">{{ sell.headline }}</p>
+  <p class="sell-signal__reason muted">{{ sell.reason }}</p>
+  {% if sell.trend_pct is not none %}
+  <div class="sell-signal__trend">
+    <span class="pill pill--sm {% if sell.trend_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+      {{ sell.trend_days }}д {{ sell.trend_pct | pct }}
+    </span>
+    <span class="muted small">тренд mid</span>
+  </div>
+  {% endif %}
+  {% if sell.before_after_line %}
+  <p class="sell-signal__money">{{ sell.before_after_line }}</p>
+  {% endif %}
+  {% if sell.comps_note %}
+  <div class="notice notice--warn sell-signal__honest">
+    <span class="notice__text">{{ sell.comps_note }}</span>
+  </div>
+  {% endif %}
+</section>
+
 <section class="value-block">
-  <div class="value-block__label">last ask · рынок</div>
+  <div class="value-block__label">
+    {% if market.insufficient_data or market.confidence == 'low' %}
+      ориентир рынка · не точная цена
+    {% else %}
+      last ask · рынок
+    {% endif %}
+  </div>
   <div class="value-block__mid">{{ mid | money }}</div>
   <div class="value-block__range">
     {{ market.low | money }} – {{ market.high | money }}
-    {% if market.insufficient_data %}
-      <span class="tag tag--warn">мало comps</span>
+    {% if market.insufficient_data or market.confidence == 'low' %}
+      <span class="tag tag--warn">мало comps · ориентир</span>
     {% else %}
       <span class="tag">{{ CONFIDENCE_LABELS.get(market.confidence, market.confidence) }} conf</span>
     {% endif %}
@@ -68,6 +97,9 @@
         {% for d in item.defect_list() %}{{ DEFECT_LABELS.get(d, d) }}{% if not loop.last %}, {% endif %}{% endfor %}
       {% endif %}
     </p>
+    {% if sell.comps_note %}
+    <p class="muted">{{ sell.comps_note }}</p>
+    {% endif %}
   </details>
 </section>
 

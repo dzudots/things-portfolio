@@ -4,7 +4,7 @@
 <section class="page-head">
   <div>
     <h1 class="page-title">Алерты</h1>
-    <p class="page-sub">Изменения рыночной оценки и недельные дайджесты</p>
+    <p class="page-sub">Сигнал «что делать», не только % изменения цены</p>
   </div>
   <form method="post" action="/alerts/read">
     <button class="btn btn-secondary" type="submit" style="padding:0.5rem 1rem;font-size:0.88rem;min-height:auto">Прочитать все</button>
@@ -22,6 +22,7 @@
           <div class="item-title">{{ a.message }}</div>
           <div class="item-meta">{{ a.created_at.strftime('%d.%m.%Y %H:%M') }} UTC
             {% if not a.read %}<span class="badge">новое</span>{% endif %}
+            {% if a.item_id %} · <a href="/items/{{ a.item_id }}">к вещи</a>{% endif %}
           </div>
         </div>
         <div class="item-price {% if a.direction == 'up' %}delta-up{% else %}delta-down{% endif %}">

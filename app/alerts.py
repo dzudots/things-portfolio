@@ -47,10 +47,14 @@ def detect_alerts_for_item(
 
     direction = "up" if change > 0 else "down"
     model_name = f"{item.model.brand} {item.model.name}" if item.model else f"#{item.id}"
-    sign = "+" if change > 0 else ""
-    message = (
-        f"{model_name}: рыночная оценка {sign}{change:.1f}% "
-        f"({int(old_mid):,} → {int(new_mid):,} ₽)".replace(",", " ")
+    from app.sell_signal import alert_action_message
+
+    message = alert_action_message(
+        model_name=model_name,
+        old_mid=old_mid,
+        new_mid=new_mid,
+        change_pct=change,
+        direction=direction,
     )
     alert = PriceAlert(
         user_id=user.id,
