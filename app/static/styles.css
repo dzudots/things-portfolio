@@ -1276,6 +1276,18 @@ input:focus, select:focus, textarea:focus {
 .pro-plan__cta { margin-top: 0.85rem; }
 .pro-plan__note { margin: 0.55rem 0 0; text-align: center; }
 .pro-plan__note--flash { color: var(--accent); font-weight: 650; }
+.pro-redeem { gap: 0.55rem; }
+.setup-steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  line-height: 1.55;
+}
+.setup-steps code {
+  font-size: 0.78em;
+  background: var(--accent-soft);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
 .plan-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;

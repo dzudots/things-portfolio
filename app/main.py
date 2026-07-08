@@ -33,13 +33,15 @@ from app.auth import (
     delete_user_account,
     export_user_data,
 )
+from app.billing import ensure_plan_fresh, is_pro, redeem_promo
 from app.config import (
     FREE_ITEM_LIMIT,
     FREE_SCANS_PER_DAY,
     MAX_UPLOAD_BYTES,
-    PRO_SCANS_PER_DAY,
     PRODUCT_NAME,
     PRODUCT_TAGLINE,
+    PRO_ITEM_LIMIT,
+    PRO_SCANS_PER_DAY,
     SESSION_COOKIE,
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_WEBHOOK_PATH,
@@ -286,7 +288,7 @@ def require_user(
     user = get_current_user(request, db)
     if not user:
         raise LoginRequired()
-    return user
+    return ensure_plan_fresh(db, user)
 
 
 def _achievement_toast(db: Session, user: User) -> list[dict]:
@@ -621,7 +623,8 @@ async def create_item(
     defect_flags = [k.replace("defect_", "") for k in form.keys() if k.startswith("defect_")]
 
     count = db.query(Item).filter(Item.owner_id == user.id).count()
-    if count >= FREE_ITEM_LIMIT:
+    limit = PRO_ITEM_LIMIT if is_pro(user) else FREE_ITEM_LIMIT
+    if count >= limit:
         return templates.TemplateResponse(
             "item_new.html",
             {
@@ -635,7 +638,9 @@ async def create_item(
                 "defects": ELECTRONICS_DEFECTS
                 if category != Category.CAR.value
                 else CAR_DEFECTS,
-                "error": f"Лимит бесплатного тарифа: {FREE_ITEM_LIMIT} вещей",
+                "cities": city_choices(),
+                "error": f"Лимит тарифа: {limit} вещей"
+                + ("" if is_pro(user) else " · активируй Pro в аккаунте"),
             },
             status_code=400,
         )
@@ -864,30 +869,45 @@ def api_digest_now(user: User = Depends(require_user)):
 # ---------- Account / privacy controls ----------
 
 
+def _account_ctx(
+    request: Request,
+    db: Session,
+    user: User,
+    *,
+    saved: Optional[str] = None,
+    error: Optional[str] = None,
+    pro_message: Optional[str] = None,
+) -> dict:
+    return {
+        "request": request,
+        "user": user,
+        "saved": saved,
+        "error": error,
+        "pro_message": pro_message,
+        "currencies": DISPLAY_CURRENCIES,
+        "telegram_ready": telegram_configured(),
+        "telegram_bot_username": get_bot_username() if telegram_configured() else None,
+        "is_pro": is_pro(user),
+        "plan_expires_at": user.plan_expires_at,
+        "free_item_limit": FREE_ITEM_LIMIT,
+        "pro_item_limit": PRO_ITEM_LIMIT,
+        "free_scans_limit": FREE_SCANS_PER_DAY,
+        "pro_scans_limit": PRO_SCANS_PER_DAY,
+        "scans_used": scans_today(db, user.id),
+    }
+
+
 @app.get("/account", response_class=HTMLResponse)
 def account_page(
     request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(require_user),
     saved: Optional[str] = None,
+    pro: Optional[str] = None,
 ):
-    is_pro = (user.plan or "free") == "pro"
     return templates.TemplateResponse(
         "account.html",
-        {
-            "request": request,
-            "user": user,
-            "saved": saved,
-            "error": None,
-            "currencies": DISPLAY_CURRENCIES,
-            "telegram_ready": telegram_configured(),
-            "telegram_bot_username": get_bot_username() if telegram_configured() else None,
-            "is_pro": is_pro,
-            "free_item_limit": FREE_ITEM_LIMIT,
-            "free_scans_limit": FREE_SCANS_PER_DAY,
-            "pro_scans_limit": PRO_SCANS_PER_DAY,
-            "scans_used": scans_today(db, user.id),
-        },
+        _account_ctx(request, db, user, saved=saved, pro_message=pro),
     )
 
 
@@ -916,6 +936,28 @@ def account_save(
         user.telegram_alerts_enabled = telegram_alerts_enabled is not None
     db.commit()
     return RedirectResponse("/account?saved=1", status_code=303)
+
+
+@app.post("/account/pro")
+def account_pro_redeem(
+    request: Request,
+    promo_code: Annotated[str, Form()] = "",
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    result = redeem_promo(db, user, promo_code)
+    if not result.ok:
+        return templates.TemplateResponse(
+            "account.html",
+            _account_ctx(request, db, user, error=result.message),
+            status_code=400,
+        )
+    from urllib.parse import quote
+
+    return RedirectResponse(
+        f"/account?saved=1&pro={quote(result.message)}",
+        status_code=303,
+    )
 
 
 @app.post("/account/telegram/link")
@@ -985,23 +1027,14 @@ def account_delete(
     user: User = Depends(require_user),
 ):
     if confirm.strip().upper() != "УДАЛИТЬ":
-        is_pro = (user.plan or "free") == "pro"
         return templates.TemplateResponse(
             "account.html",
-            {
-                "request": request,
-                "user": user,
-                "saved": None,
-                "error": "Чтобы удалить аккаунт, введите слово УДАЛИТЬ",
-                "currencies": DISPLAY_CURRENCIES,
-                "telegram_ready": telegram_configured(),
-                "telegram_bot_username": get_bot_username() if telegram_configured() else None,
-                "is_pro": is_pro,
-                "free_item_limit": FREE_ITEM_LIMIT,
-                "free_scans_limit": FREE_SCANS_PER_DAY,
-                "pro_scans_limit": PRO_SCANS_PER_DAY,
-                "scans_used": scans_today(db, user.id),
-            },
+            _account_ctx(
+                request,
+                db,
+                user,
+                error="Чтобы удалить аккаунт, введите слово УДАЛИТЬ",
+            ),
             status_code=400,
         )
     delete_user_account(db, user)
@@ -1202,6 +1235,8 @@ def api_usage(
         "scans_today": scans_today(db, user.id),
         "scans_limit": scan_limit_for(user),
         "plan": user.plan or "free",
+        "is_pro": is_pro(user),
+        "plan_expires_at": user.plan_expires_at.isoformat() if user.plan_expires_at else None,
         "ai_provider_ready": provider_ready(),
     }
 

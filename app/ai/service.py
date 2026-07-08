@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.providers import identify_from_image, provider_ready
 from app.ai.scan import comps_preview, match_canonical
+from app.billing import is_pro
 from app.config import FREE_SCANS_PER_DAY, PRO_SCANS_PER_DAY
 from app.models import ApiUsage, ScanJob, User, utcnow
 
@@ -26,7 +27,7 @@ def scans_today(db: Session, user_id: int) -> int:
 
 
 def scan_limit_for(user: User) -> int:
-    return PRO_SCANS_PER_DAY if (user.plan or "free") == "pro" else FREE_SCANS_PER_DAY
+    return PRO_SCANS_PER_DAY if is_pro(user) else FREE_SCANS_PER_DAY
 
 
 def can_scan(db: Session, user: User) -> tuple[bool, str]:

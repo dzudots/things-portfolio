@@ -57,6 +57,9 @@ USD_RUB = float(os.getenv("THINGS_USD_RUB", "90"))
 # Free tier scan limits (stability + cost control)
 FREE_SCANS_PER_DAY = int(os.getenv("THINGS_FREE_SCANS_PER_DAY", "5"))
 PRO_SCANS_PER_DAY = int(os.getenv("THINGS_PRO_SCANS_PER_DAY", "50"))
+PRO_ITEM_LIMIT = int(os.getenv("THINGS_PRO_ITEM_LIMIT", "200"))
+# Promo codes: CODE:DAYS,CODE2:DAYS — activates Pro without payment gateway
+PRO_PROMO_CODES = os.getenv("THINGS_PRO_PROMO_CODES", "STAKBETA30:30,STAKPRO90:90")
 MAX_UPLOAD_BYTES = int(os.getenv("THINGS_MAX_UPLOAD_BYTES", str(4 * 1024 * 1024)))
 
 UPLOAD_DIR = Path(os.getenv("THINGS_UPLOAD_DIR", str(BASE_DIR / "uploads" / "scans")))

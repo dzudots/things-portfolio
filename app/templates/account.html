@@ -9,7 +9,7 @@
   </div>
 </section>
 
-{% if saved %}<div class="success-banner">Сохранено.</div>{% endif %}
+{% if saved %}<div class="success-banner">Сохранено{% if pro_message %} · {{ pro_message }}{% endif %}.</div>{% endif %}
 {% if error %}<div class="error" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
 
 <div class="panel pro-plan {% if is_pro %}pro-plan--active{% endif %}">
@@ -17,6 +17,9 @@
     <div>
       <span class="pro-plan__eyebrow">{{ icons.icon('crown', 14, 'icon--inline') }} Тариф</span>
       <strong class="pro-plan__title">{% if is_pro %}Pro{% else %}Free{% endif %}</strong>
+      {% if is_pro and plan_expires_at %}
+      <div class="muted small">до {{ plan_expires_at.strftime('%d.%m.%Y') }}</div>
+      {% endif %}
     </div>
     {% if is_pro %}
     <span class="badge">активен</span>
@@ -37,9 +40,9 @@
     <div class="plan-compare__col {% if is_pro %}plan-compare__col--current{% endif %} plan-compare__col--pro">
       <div class="plan-compare__label">Pro</div>
       <ul class="plan-compare__list">
-        <li>Без лимита вещей</li>
+        <li>до {{ pro_item_limit }} вещей</li>
         <li>{{ pro_scans_limit }} AI-сканов / день</li>
-        <li>Пассивный доход <span class="muted">(скоро)</span></li>
+        <li>Telegram-алерты</li>
         <li>Приоритет comps</li>
       </ul>
     </div>
@@ -50,18 +53,29 @@
   <div class="usage-meter" aria-hidden="true">
     <div class="usage-meter__fill" style="width:{{ [100, (100 * scans_used / free_scans_limit) | round(1)] | min }}%"></div>
   </div>
-  <button type="button" class="btn btn-primary btn-block pro-plan__cta" id="proUpgrade">
-    {{ icons.icon('crown', 16) }} Перейти на Pro
-  </button>
-  <p class="pro-plan__note muted small">Оплата скоро. Пока это заглушка — без списаний.</p>
+  <form class="form pro-redeem" method="post" action="/account/pro" style="margin-top:0.85rem">
+    <label>Промокод Pro
+      <input name="promo_code" placeholder="STAKBETA30" autocomplete="off" required />
+    </label>
+    <button class="btn btn-primary btn-block" type="submit">
+      {{ icons.icon('crown', 16) }} Активировать Pro
+    </button>
+  </form>
+  <p class="pro-plan__note muted small">Карты скоро. Сейчас — промокод (бета). Пример: <code>STAKBETA30</code></p>
   {% else %}
-  <p class="muted small" style="margin:0">Спасибо за Pro. Пассивный доход появится в следующих обновлениях.</p>
+  <p class="muted small" style="margin:0">Pro активен. Оплата картой появится позже — пока продлевай промокодом.</p>
+  <form class="form pro-redeem" method="post" action="/account/pro" style="margin-top:0.75rem">
+    <label>Продлить промокодом
+      <input name="promo_code" placeholder="STAKPRO90" autocomplete="off" required />
+    </label>
+    <button class="btn btn-secondary btn-block" type="submit">Продлить</button>
+  </form>
   {% endif %}
 </div>
 
 <div class="panel">
   <strong>Профиль и уведомления</strong>
-  <form class="form" method="post" action="/account" style="margin-top:0.75rem">
+  <form id="account-form" class="form" method="post" action="/account" style="margin-top:0.75rem">
     <label>Отображаемое имя
       <input name="display_name" value="{{ user.display_name }}" />
     </label>
@@ -84,33 +98,43 @@
       <input type="checkbox" name="digest_enabled" {% if user.digest_enabled %}checked{% endif %} />
       Еженедельный дайджест портфеля
     </label>
+    {% if telegram_ready and user.telegram_chat_id %}
+    <label class="chip" style="justify-content:flex-start">
+      <input type="checkbox" name="telegram_alerts_enabled" {% if user.telegram_alerts_enabled %}checked{% endif %} />
+      Push-алерты в Telegram
+    </label>
+    {% endif %}
     <button class="btn btn-primary" type="submit">Сохранить</button>
   </form>
 </div>
 
-{% if telegram_ready %}
 <div class="panel">
-  <strong>Telegram</strong>
-  {% if user.telegram_chat_id %}
-  <p class="muted small">
-    Привязан{% if user.telegram_username %} · @{{ user.telegram_username }}{% endif %}
-  </p>
-  <label class="chip" style="justify-content:flex-start">
-    <input type="checkbox" name="telegram_alerts_enabled" form="account-form" {% if user.telegram_alerts_enabled %}checked{% endif %} />
-    Push-алерты в Telegram
-  </label>
-  <p class="muted small">Сохрани настройки выше, чтобы включить или выключить push.</p>
-  <form method="post" action="/account/telegram/unlink" style="margin-top:0.75rem" onsubmit="return confirm('Отвязать Telegram?');">
-    <button class="btn btn-secondary" type="submit">Отвязать Telegram</button>
-  </form>
+  <strong>{{ icons.icon('bell', 16, 'icon--inline') }} Telegram</strong>
+  {% if telegram_ready %}
+    {% if user.telegram_chat_id %}
+    <p class="muted small">
+      Привязан{% if user.telegram_username %} · @{{ user.telegram_username }}{% endif %}
+    </p>
+    <form method="post" action="/account/telegram/unlink" style="margin-top:0.75rem" onsubmit="return confirm('Отвязать Telegram?');">
+      <button class="btn btn-secondary" type="submit">Отвязать Telegram</button>
+    </form>
+    {% else %}
+    <p class="muted">Алерты о движении цены прямо в Telegram — без email.</p>
+    <form method="post" action="/account/telegram/link">
+      <button class="btn btn-secondary" type="submit">Подключить Telegram</button>
+    </form>
+    {% endif %}
   {% else %}
-  <p class="muted">Получай алерты о движении цены прямо в Telegram — без email.</p>
-  <form method="post" action="/account/telegram/link">
-    <button class="btn btn-secondary" type="submit">Подключить Telegram</button>
-  </form>
+  <p class="muted small">
+    Бот ещё не подключён на сервере. Когда появится токен — здесь будет кнопка привязки.
+  </p>
+  <ol class="setup-steps muted small">
+    <li>Создай бота в @BotFather</li>
+    <li>В Railway: <code>THINGS_TELEGRAM_BOT_TOKEN</code> + <code>THINGS_PUBLIC_BASE_URL</code></li>
+    <li>Редеплой — webhook поднимется сам</li>
+  </ol>
   {% endif %}
 </div>
-{% endif %}
 
 <div class="panel">
   <strong>Конфиденциальность</strong>
@@ -129,16 +153,4 @@
     <button class="btn btn-danger" type="submit">Удалить всё</button>
   </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  document.getElementById("proUpgrade")?.addEventListener("click", () => {
-    const note = document.querySelector(".pro-plan__note");
-    if (note) {
-      note.textContent = "Оплата в разработке. Напиши в поддержку, если нужен тестовый Pro.";
-      note.classList.add("pro-plan__note--flash");
-    }
-  });
-</script>
 {% endblock %}

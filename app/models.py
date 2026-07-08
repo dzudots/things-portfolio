@@ -119,6 +119,9 @@ class User(Base):
     alert_threshold_pct: Mapped[float] = mapped_column(Float, default=5.0)
     # free | pro — for scan limits / future billing
     plan: Mapped[str] = mapped_column(String(16), default="free")
+    plan_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # RUB | KZT | BYN | UAH | USD — display only; storage in RUB
     display_currency: Mapped[str] = mapped_column(String(8), default="RUB")
     privacy_accepted_at: Mapped[Optional[datetime]] = mapped_column(
@@ -416,6 +419,10 @@ def _migrate_sqlite() -> None:
             conn.exec_driver_sql(
                 "ALTER TABLE users ADD COLUMN display_currency VARCHAR(8) DEFAULT 'RUB'"
             )
+        if cols and "plan_expires_at" not in cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN plan_expires_at DATETIME"
+            )
         _telegram_cols = {
             "telegram_chat_id": "VARCHAR(32)",
             "telegram_username": "VARCHAR(64)",
@@ -439,6 +446,9 @@ def _migrate_postgres() -> None:
         )
         conn.exec_driver_sql(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_currency VARCHAR(8) DEFAULT 'RUB'"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMPTZ"
         )
         conn.exec_driver_sql(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(32)"
