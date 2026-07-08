@@ -22,7 +22,7 @@ def main() -> int:
         check("health", r.status_code == 200 and r.json().get("ok") is True, r.text[:120])
 
         r = c.get("/")
-        check("landing", r.status_code == 200 and "Вещи" in r.text, f"status={r.status_code}")
+        check("landing", r.status_code == 200 and "Стак" in r.text, f"status={r.status_code}")
 
         r = c.get("/manifest.webmanifest")
         check(
@@ -58,7 +58,7 @@ def main() -> int:
         r = authed.get("/portfolio")
         check(
             "portfolio",
-            r.status_code == 200 and ("портфел" in r.text.lower() or "Вещи" in r.text),
+            r.status_code == 200 and ("портфел" in r.text.lower() or "Стак" in r.text),
             f"len={len(r.text)}",
         )
 

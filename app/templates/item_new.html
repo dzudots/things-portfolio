@@ -106,14 +106,18 @@
     {% endif %}
 
     <div class="form-row">
-      <label>Город
-        <input name="location_city" value="Москва" required autocomplete="address-level2" />
+      <label>Город (СНГ)
+        <select name="location_city" id="citySelect" required>
+          {% for c in cities %}
+          <option value="{{ c.city }}" data-region="{{ c.region }}" data-currency="{{ c.currency }}" {% if c.city == 'Москва' %}selected{% endif %}>{{ c.city }} · {{ c.country }}</option>
+          {% endfor %}
+        </select>
       </label>
       <label>Регион
-        <input name="location_region" value="Москва" required autocomplete="address-level1" />
+        <input name="location_region" id="regionInput" value="Москва" required readonly />
       </label>
     </div>
-    <label>Цена покупки, ₽
+    <label>Цена покупки ({{ CURRENCY_META[currency].symbol }})
       <input name="cost_basis" inputmode="decimal" placeholder="необязательно" />
     </label>
     <label>Заметка
@@ -123,4 +127,34 @@
   </form>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const sel = document.getElementById("citySelect");
+  const reg = document.getElementById("regionInput");
+  if (sel && reg) {
+    const sync = () => {
+      const opt = sel.selectedOptions[0];
+      if (opt) reg.value = opt.dataset.region || opt.value;
+    };
+    sel.addEventListener("change", sync);
+    sync();
+  }
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const sel = document.getElementById("citySelect");
+  const reg = document.getElementById("regionInput");
+  if (sel && reg) {
+    const sync = () => {
+      const opt = sel.selectedOptions[0];
+      if (opt) reg.value = opt.dataset.region || opt.value;
+    };
+    sel.addEventListener("change", sync);
+    sync();
+  }
+</script>
 {% endblock %}

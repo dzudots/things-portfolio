@@ -119,6 +119,8 @@ class User(Base):
     alert_threshold_pct: Mapped[float] = mapped_column(Float, default=5.0)
     # free | pro — for scan limits / future billing
     plan: Mapped[str] = mapped_column(String(16), default="free")
+    # RUB | KZT | BYN | UAH | USD — display only; storage in RUB
+    display_currency: Mapped[str] = mapped_column(String(8), default="RUB")
     privacy_accepted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -400,6 +402,10 @@ def _migrate_sqlite() -> None:
         if cols and "plan" not in cols:
             conn.exec_driver_sql(
                 "ALTER TABLE users ADD COLUMN plan VARCHAR(16) DEFAULT 'free'"
+            )
+        if cols and "display_currency" not in cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN display_currency VARCHAR(8) DEFAULT 'RUB'"
             )
 
 

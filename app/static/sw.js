@@ -1,8 +1,10 @@
-const CACHE = "things-v3";
+const CACHE = "things-v4";
 const PRECACHE = [
   "/",
-  "/static/styles.css?v=7",
-  "/static/charts.js?v=2",
+  "/static/styles.css?v=8",
+  "/static/charts.js?v=3",
+  "/static/animations.js?v=1",
+  "/static/pwa-install.js?v=2",
   "/static/icons/icon-192.png",
   "/manifest.webmanifest",
 ];

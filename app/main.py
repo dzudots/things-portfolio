@@ -8,6 +8,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request,
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import pass_context
 from sqlalchemy.orm import Session, joinedload
 
 from app.achievements import (
@@ -31,7 +32,16 @@ from app.auth import (
     delete_user_account,
     export_user_data,
 )
-from app.config import FREE_ITEM_LIMIT, MAX_UPLOAD_BYTES, SESSION_COOKIE, UPLOAD_DIR
+from app.config import (
+    FREE_ITEM_LIMIT,
+    MAX_UPLOAD_BYTES,
+    PRODUCT_NAME,
+    PRODUCT_TAGLINE,
+    SESSION_COOKIE,
+    UPLOAD_DIR,
+)
+from app.fx import CURRENCY_META, DISPLAY_CURRENCIES, format_amount, get_rates
+from app.regions import city_choices
 from app.jobs import ingest_comp_aggregates, revalue_all_items, shutdown_scheduler, start_scheduler
 from app.metrics import compute_metrics, track_event
 from app.models import (
@@ -62,17 +72,41 @@ from app.valuation import (
 )
 
 BASE = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(BASE / "templates"))
 
-app = FastAPI(title="Вещи — портфель имущества", docs_url="/api/docs")
+
+class ThingsTemplates(Jinja2Templates):
+    def TemplateResponse(self, *args, **kwargs):  # type: ignore[override]
+        if "context" in kwargs:
+            ctx = kwargs["context"]
+        elif len(args) >= 2:
+            ctx = args[1]
+        else:
+            ctx = {}
+        if isinstance(ctx, dict):
+            user = ctx.get("user")
+            ctx.setdefault(
+                "currency",
+                (getattr(user, "display_currency", None) or "RUB") if user else "RUB",
+            )
+            ctx.setdefault("product_name", PRODUCT_NAME)
+            ctx.setdefault("product_tagline", PRODUCT_TAGLINE)
+            ctx.setdefault("fx_rates", get_rates())
+        return super().TemplateResponse(*args, **kwargs)
+
+
+templates = ThingsTemplates(directory=str(BASE / "templates"))
+
+app = FastAPI(title=f"{PRODUCT_NAME} — портфель имущества", docs_url="/api/docs")
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
 
-def _fmt_money(value: Optional[float]) -> str:
-    if value is None:
-        return "—"
-    n = int(round(value))
-    return f"{n:,}".replace(",", " ") + " ₽"
+@pass_context
+def _fmt_money(ctx, value: Optional[float], currency: Optional[str] = None) -> str:
+    cur = currency or (ctx.get("currency") if ctx else None) or "RUB"
+    return format_amount(value, cur)
+
+
+templates.env.filters["money"] = _fmt_money
 
 
 def things_count_label(n: int) -> str:
@@ -134,11 +168,12 @@ def portfolio_story(
     week_pct: Optional[float],
     item_count: int,
     top_mover: Optional[dict],
+    currency: str = "RUB",
 ) -> str:
     """Bite-sized data story — Revolut/Artha style, CIS Gen Z tone."""
     if item_count == 0:
         return "Пока пусто. Добавь первую вещь — и увидишь, сколько она стоит на рынке."
-    base = f"У тебя {things_count_label(item_count)} на ~{_fmt_money(total_mid)}"
+    base = f"У тебя {things_count_label(item_count)} на ~{format_amount(total_mid, currency)}"
     if week_pct is None:
         return f"{base}. Следи за ценой как за тикером — без налоговой и без брокера."
     if abs(week_pct) < 0.3:
@@ -167,7 +202,6 @@ def model_label(model) -> str:
     return f"{brand} {name}".strip()
 
 
-templates.env.filters["money"] = _fmt_money
 templates.env.filters["pct"] = _fmt_pct
 templates.env.filters["model_label"] = model_label
 templates.env.filters["things_count"] = things_count_label
@@ -176,8 +210,11 @@ templates.env.globals["CONDITION_LABELS"] = CONDITION_LABELS
 templates.env.globals["CONDITION_HINTS"] = CONDITION_HINTS
 templates.env.globals["CONFIDENCE_LABELS"] = CONFIDENCE_LABELS
 templates.env.globals["DEFECT_LABELS"] = DEFECT_LABELS
+templates.env.globals["CURRENCY_META"] = CURRENCY_META
+templates.env.globals["DISPLAY_CURRENCIES"] = DISPLAY_CURRENCIES
 templates.env.globals["model_label"] = model_label
 templates.env.globals["things_count_label"] = things_count_label
+templates.env.globals["product_name"] = PRODUCT_NAME
 
 
 @app.on_event("startup")
@@ -470,7 +507,9 @@ def portfolio(
     portfolio_delta = (total_mid - total_cost) if total_cost else None
     portfolio_delta_pct = _pct(total_cost, total_mid) if total_cost else None
     week_pct_total = _pct(week_old_total, total_mid) if week_old_total else None
-    story = portfolio_story(total_mid, week_pct_total, len(rows), top_mover)
+    story = portfolio_story(
+        total_mid, week_pct_total, len(rows), top_mover, user.display_currency or "RUB"
+    )
     alerts = unread_alerts(db, user.id, limit=5)
     toast = _achievement_toast(db, user)
     progress = achievement_progress(db, user.id)
@@ -540,6 +579,7 @@ def new_item_page(
             "selected": selected,
             "conditions": list(Condition),
             "defects": defects,
+            "cities": city_choices(),
             "error": None,
         },
     )
@@ -819,6 +859,7 @@ def account_page(
             "user": user,
             "saved": saved,
             "error": None,
+            "currencies": DISPLAY_CURRENCIES,
         },
     )
 
@@ -830,10 +871,13 @@ def account_save(
     alert_threshold_pct: Annotated[str, Form()] = "5",
     alerts_enabled: Annotated[Optional[str], Form()] = None,
     digest_enabled: Annotated[Optional[str], Form()] = None,
+    display_currency: Annotated[str, Form()] = "RUB",
     db: Session = Depends(get_db),
     user: User = Depends(require_user),
 ):
     user.display_name = display_name.strip()
+    cur = (display_currency or "RUB").upper()
+    user.display_currency = cur if cur in DISPLAY_CURRENCIES else "RUB"
     try:
         user.alert_threshold_pct = max(1.0, min(50.0, float(alert_threshold_pct.replace(",", "."))))
     except ValueError:

@@ -25,8 +25,16 @@ MIN_COMPS_FOR_CONFIDENCE = 5
 FREE_ITEM_LIMIT = 20
 DEFAULT_ALERT_THRESHOLD_PCT = 5.0
 
+PRODUCT_NAME = os.getenv("THINGS_PRODUCT_NAME", "Стак")
+PRODUCT_TAGLINE = os.getenv("THINGS_PRODUCT_TAGLINE", "твой стак имущества")
+
 PRODUCT_PURPOSE = "personal_household_inventory"
 NO_TAX_REPORTING = True
+
+# CIS FX display (internal amounts stay RUB)
+FX_RATES_JSON = os.getenv("THINGS_FX_RATES_JSON", "")
+FX_REFRESH_HOURS = float(os.getenv("THINGS_FX_REFRESH_HOURS", "12"))
+COMP_RECENCY_HALF_LIFE_DAYS = float(os.getenv("THINGS_COMP_HALF_LIFE_DAYS", "10"))
 
 # --- AI / vision providers (OpenAI-compatible: OpenAI, Poe, OpenRouter, etc.) ---
 AI_API_KEY = os.getenv("THINGS_AI_API_KEY", "")

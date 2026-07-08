@@ -1,18 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Портфель — Вещи{% endblock %}
+{% block title %}Портфель — {{ product_name }}{% endblock %}
 {% block content %}
 {% import "icons.html" as icons %}
 <section class="app-bar">
   <div>
-    <p class="eyebrow">твой стак</p>
+    <p class="eyebrow">{{ product_tagline }}</p>
     <h1 class="app-bar__title">Портфель</h1>
-    <p class="app-bar__meta">{{ rows|length | things_count }} · live-оценка рынка</p>
+    <p class="app-bar__meta">{{ rows|length | things_count }} · live · СНГ</p>
   </div>
   <div class="app-bar__actions">
     <a class="chip-link" href="/achievements" title="Бейджи">{{ icons.icon('badge', 14) }} {{ achievement_progress.unlocked_count if achievement_progress else 0 }}/{{ achievement_progress.total if achievement_progress else 14 }}</a>
     <a class="btn btn-primary btn-compact" href="/items/new">{{ icons.icon('plus', 14) }} Вещь</a>
   </div>
 </section>
+
+<nav class="quick-actions" aria-label="Быстрые действия">
+  <a class="quick-action" href="/scan">
+    <span class="quick-action__icon">{{ icons.icon('camera', 20) }}</span>
+    <span>Скан</span>
+  </a>
+  <a class="quick-action" href="/items/new">
+    <span class="quick-action__icon">{{ icons.icon('plus', 20) }}</span>
+    <span>Добавить</span>
+  </a>
+  <a class="quick-action" href="/alerts">
+    <span class="quick-action__icon">{{ icons.icon('bell', 20) }}</span>
+    <span>Алерты</span>
+  </a>
+  <button type="button" class="quick-action" id="quickChart" {% if history_json == '[]' %}disabled{% endif %}>
+    <span class="quick-action__icon">{{ icons.icon('chart', 20) }}</span>
+    <span>График</span>
+  </button>
+</nav>
 
 <div class="ticker-card">
   <div class="ticker-card__top">
@@ -101,8 +120,11 @@
   </ul>
   {% else %}
   <div class="empty-box">
-    <p>Пока пусто. Кинь первую вещь — телефон, ноут или тачку.</p>
-    <a class="btn btn-primary" href="/items/new">{{ icons.icon('plus', 16) }} Добавить вещь</a>
+    <p>Пока пусто. Сфоткай или добавь первую вещь.</p>
+    <div class="empty-box__actions">
+      <a class="btn btn-primary" href="/scan">{{ icons.icon('camera', 16) }} Скан</a>
+      <a class="btn btn-secondary" href="/items/new">{{ icons.icon('plus', 16) }} Добавить</a>
+    </div>
   </div>
   {% endif %}
 </section>
@@ -117,30 +139,20 @@
       drawSparkline(el, pts);
     } catch (e) {}
   });
-  const btn = document.getElementById("toggleChart");
   const panel = document.getElementById("chartPanel");
-  let drawn = false;
-  if (btn && panel) {
-    btn.addEventListener("click", () => {
-      const open = panel.hasAttribute("hidden");
-      if (open) {
-        panel.removeAttribute("hidden");
-        btn.setAttribute("aria-expanded", "true");
-        btn.innerHTML = "скрыть";
-        if (!drawn) {
-          drawLineChart(
-            "portfolioChart",
-            history.map((h) => ({ label: h.date, value: h.total })),
-            { format: money }
-          );
-          drawn = true;
-        }
-      } else {
-        panel.setAttribute("hidden", "");
-        btn.setAttribute("aria-expanded", "false");
-        btn.innerHTML = "график";
-      }
-    });
+  const btn = document.getElementById("toggleChart");
+  const quick = document.getElementById("quickChart");
+  function toggleChart() {
+    if (!panel) return;
+    const open = panel.hasAttribute("hidden");
+    if (open) panel.removeAttribute("hidden");
+    else panel.setAttribute("hidden", "");
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && history.length && window.drawPortfolioChart) {
+      drawPortfolioChart(document.getElementById("portfolioChart"), history, { format: money });
+    }
   }
+  btn?.addEventListener("click", toggleChart);
+  quick?.addEventListener("click", toggleChart);
 </script>
 {% endblock %}

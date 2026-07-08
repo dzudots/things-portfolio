@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, timezone
 from statistics import median
 from typing import Optional, Sequence
 
 from sqlalchemy.orm import Session
 
-from app.config import COMPS_WINDOW_DAYS, MIN_COMPS_FOR_CONFIDENCE
+from app.config import COMPS_WINDOW_DAYS, COMP_RECENCY_HALF_LIFE_DAYS, MIN_COMPS_FOR_CONFIDENCE
 from app.models import CompListing, Item, ValuationSnapshot, utcnow
+from app.regions import price_index_for
 
 # Defect multipliers applied when comps for exact defect set are scarce
 DEFECT_MULTIPLIERS = {
@@ -117,6 +118,49 @@ def fetch_comps(
     return any_rows, "country"
 
 
+def _recency_weight(observed_at: datetime, now: datetime) -> float:
+    if observed_at.tzinfo is None:
+        observed_at = observed_at.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    age = max(0.0, (now - observed_at).total_seconds() / 86400.0)
+    half = max(1.0, COMP_RECENCY_HALF_LIFE_DAYS)
+    return max(0.25, 0.5 ** (age / half))
+
+
+def weighted_percentile(
+    weighted_prices: Sequence[tuple[float, float]], p: float
+) -> float:
+    """Percentile on (price, weight) pairs — fresher comps weigh more."""
+    if not weighted_prices:
+        raise ValueError("empty")
+    pairs = sorted(weighted_prices, key=lambda x: x[0])
+    total_w = sum(w for _, w in pairs)
+    if total_w <= 0:
+        return float(pairs[len(pairs) // 2][0])
+    target = (p / 100.0) * total_w
+    acc = 0.0
+    for price, w in pairs:
+        acc += w
+        if acc >= target:
+            return float(price)
+    return float(pairs[-1][0])
+
+
+def _comps_to_weighted_prices(
+    comps: list[CompListing],
+    city: str,
+    region: str,
+) -> list[tuple[float, float]]:
+    now = utcnow()
+    idx = price_index_for(city, region)
+    out: list[tuple[float, float]] = []
+    for c in comps:
+        w = _recency_weight(c.observed_at, now)
+        out.append((round(c.price * idx), w))
+    return out
+
+
 def compute_valuation(db: Session, item: Item) -> ValuationResult:
     defects = item.defect_list()
     defects_key = _normalize_defects(defects)
@@ -130,7 +174,8 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
         region=item.location_region,
     )
 
-    prices = sorted(c.price for c in comps)
+    weighted = _comps_to_weighted_prices(comps, item.location_city, item.location_region)
+    prices = sorted(p for p, _ in weighted)
     insufficient = len(prices) < MIN_COMPS_FOR_CONFIDENCE
 
     if not prices:
@@ -159,9 +204,9 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
         )
         return _apply_defect_multipliers(result, defects)
 
-    low = percentile(prices, 25)
-    mid = percentile(prices, 50)
-    high = percentile(prices, 75)
+    low = weighted_percentile(weighted, 25)
+    mid = weighted_percentile(weighted, 50)
+    high = weighted_percentile(weighted, 75)
 
     # Widen band when data is scarce
     if insufficient:
@@ -177,7 +222,7 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
         comps_count=len(prices),
         geo_level=geo_level,
         insufficient_data=insufficient,
-        method="comps_percentile",
+        method="comps_weighted_percentile",
     )
 
     # If we used comps without matching defects, adjust

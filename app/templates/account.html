@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Аккаунт — Вещи{% endblock %}
+{% block title %}Аккаунт — {{ product_name }}{% endblock %}
 {% block content %}
 <section class="page-head">
   <div>
@@ -20,6 +20,14 @@
     <label>Порог алерта, %
       <input name="alert_threshold_pct" inputmode="decimal" value="{{ user.alert_threshold_pct }}" />
     </label>
+    <label>Валюта отображения
+      <select name="display_currency">
+        {% for code in currencies %}
+        <option value="{{ code }}" {% if user.display_currency == code %}selected{% endif %}>{{ CURRENCY_META[code].label }} ({{ CURRENCY_META[code].symbol }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="muted small">Оценки считаются в рублях по comps СНГ; валюта — только отображение.</p>
     <label class="chip" style="justify-content:flex-start">
       <input type="checkbox" name="alerts_enabled" {% if user.alerts_enabled %}checked{% endif %} />
       Алерты при изменении цены

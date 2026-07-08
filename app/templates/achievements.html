@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Достижения — Вещи{% endblock %}
+{% block title %}Достижения — {{ product_name }}{% endblock %}
 {% block content %}
+{% import "icons.html" as icons %}
 <section class="page-head">
   <div>
     <h1 class="page-title">Достижения</h1>
@@ -13,22 +14,22 @@
     <div class="label">Прогресс</div>
     <div class="value">{{ progress.unlocked_count }} / {{ progress.total }}</div>
     <div class="progress-bar" style="margin-top:0.75rem">
-      <div class="progress-bar__fill" style="width:{{ (100 * progress.unlocked_count / progress.total) | round(1) }}%"></div>
+      <div class="progress-bar__fill progress-bar__fill--animated" style="width:{{ (100 * progress.unlocked_count / progress.total) | round(1) }}%"></div>
     </div>
   </div>
 </div>
 
 <div class="achieve-grid">
   {% for a in progress.list %}
-  <article class="achieve-card {% if a.unlocked %}achieve-card--on{% else %}achieve-card--off{% endif %}">
-    <div class="achieve-card__icon">{{ a.icon }}</div>
+  <article class="achieve-card {% if a.unlocked %}achieve-card--on achieve-card--shine{% else %}achieve-card--off{% endif %}">
+    <div class="achieve-card__icon">{{ icons.icon(a.icon, 28) }}</div>
     <div>
       <div class="achieve-card__title">{{ a.title }}</div>
       <div class="achieve-card__desc">
         {% if a.unlocked %}{{ a.description }}{% else %}{{ a.hint }}{% endif %}
       </div>
     </div>
-    {% if a.unlocked %}<span class="badge">открыто</span>{% endif %}
+    {% if a.unlocked %}<span class="badge badge--pop">открыто</span>{% endif %}
   </article>
   {% endfor %}
 </div>

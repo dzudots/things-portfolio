@@ -77,7 +77,14 @@ function drawLineChart(canvasId, points, opts) {
 }
 
 function money(n) {
-  return Math.round(n).toLocaleString("ru-RU") + " ₽";
+  const cur = window.THINGS_CURRENCY || "RUB";
+  const rate = (window.THINGS_FX && window.THINGS_FX[cur]) || 1;
+  const v = Math.round(Number(n || 0) * rate);
+  const grouped = v.toLocaleString("ru-RU");
+  if (cur === "USD") return `$${grouped}`;
+  if (cur === "BYN") return `${grouped} Br`;
+  const sym = { RUB: "₽", KZT: "₸", UAH: "₴" }[cur] || "₽";
+  return `${grouped} ${sym}`;
 }
 
 function drawSparkline(canvas, values) {

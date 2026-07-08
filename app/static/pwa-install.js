@@ -32,7 +32,7 @@
     deferred = e;
     if (document.getElementById("pwaInstall")) return;
     const el = bannerHtml(
-      "Поставь «Вещи» на Домой — как приложение",
+      "Поставь «Стак» на Домой — как приложение",
       `<button type="button" class="btn btn-primary btn-compact" id="pwaInstallBtn">Установить</button>`
     );
     el.querySelector("#pwaInstallBtn")?.addEventListener("click", async () => {

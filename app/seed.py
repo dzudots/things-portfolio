@@ -127,6 +127,17 @@ CITIES = [
     ("Казань", "Татарстан"),
     ("Екатеринбург", "Свердловская область"),
     ("Новосибирск", "Новосибирская область"),
+    ("Краснодар", "Краснодарский край"),
+    ("Ростов-на-Дону", "Ростовская область"),
+    ("Минск", "Минск"),
+    ("Алматы", "Алматы"),
+    ("Астана", "Астана"),
+    ("Ташкент", "Ташкент"),
+    ("Тбилиси", "Тбилиси"),
+    ("Ереван", "Ереван"),
+    ("Баку", "Баку"),
+    ("Киев", "Киев"),
+    ("Бишкек", "Бишкек"),
 ]
 
 
@@ -293,7 +304,10 @@ def ensure_catalog(db) -> int:
             for i in range(n):
                 city, region = CITIES[i % len(CITIES)]
                 noise = rng.uniform(0.88, 1.12)
-                price = round(base * noise / 100) * 100
+                from app.regions import price_index_for
+
+                regional = price_index_for(city, region)
+                price = round(base * noise * regional / 100) * 100
                 observed = now - timedelta(days=rng.randint(0, 28), hours=rng.randint(0, 23))
                 db.add(
                     CompListing(
