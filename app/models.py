@@ -409,9 +409,23 @@ def _migrate_sqlite() -> None:
             )
 
 
+def _migrate_postgres() -> None:
+    """Additive Postgres patches (create_all won't ALTER)."""
+    if not str(engine.url).startswith("postgresql"):
+        return
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(16) DEFAULT 'free'"
+        )
+        conn.exec_driver_sql(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_currency VARCHAR(8) DEFAULT 'RUB'"
+        )
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _migrate_sqlite()
+    _migrate_postgres()
 
 
 def get_db():

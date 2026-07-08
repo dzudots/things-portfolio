@@ -32,7 +32,7 @@ def main() -> int:
         )
 
         r = c.get("/sw.js")
-        check("sw", r.status_code == 200 and "things-v3" in r.text)
+        check("sw", r.status_code == 200 and "things-v4" in r.text)
 
         for path in [
             "/static/icons/icon-192.png",
