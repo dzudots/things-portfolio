@@ -4,7 +4,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8080
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -13,20 +13,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Bust layer cache when app code changes (Railway sometimes reuses stale COPY layers)
-ARG CACHE_BUST=20260709-pro2
-RUN echo "cache_bust=${CACHE_BUST}" > /tmp/cache_bust.txt && cat /tmp/cache_bust.txt
+# Bust layer cache when app code changes
+ARG CACHE_BUST=20260709-pro3
+RUN echo "cache_bust=${CACHE_BUST}" > /tmp/cache_bust.txt
 
 COPY app ./app
 COPY docs ./docs
 COPY tests ./tests
 COPY README.md .
 
-RUN mkdir -p /data/uploads/scans /data
+RUN mkdir -p /data/uploads/scans /data \
+    && python -c "from app.main import app; assert any(getattr(r,'path',None)=='/account/pro' for r in app.routes)"
 
-EXPOSE 8000
+EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD curl -fsS "http://127.0.0.1:${PORT}/health" || exit 1
-
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
