@@ -31,9 +31,12 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 Или `run.bat`. Откройте http://127.0.0.1:8000
 
+**Prod:** https://things-portfolio-production.up.railway.app  
 Демо: `demo@things.local` / `demo1234`
 
-На телефоне: откройте сайт → «На экран Домой» (PWA).
+На телефоне: откройте сайт → баннер «Установить» / iOS: Поделиться → «На экран Домой».
+
+Smoke на проде: `python scripts/prod_smoke.py`
 
 ## Возможности
 
