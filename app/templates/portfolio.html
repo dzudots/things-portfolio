@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Портфель — {{ product_name }}{% endblock %}
 {% block content %}
 {% import "icons.html" as icons %}
@@ -13,6 +13,16 @@
     <a class="btn btn-primary btn-compact" href="/items/new">{{ icons.icon('plus', 14) }} Вещь</a>
   </div>
 </section>
+
+{% if not rows %}
+<div class="onboard-tip">
+  <span class="onboard-tip__icon">{{ icons.icon('spark', 20) }}</span>
+  <p>
+    <strong>Собери стак за минуту.</strong>
+    Начни со <a href="/scan">Скана</a> по фото или <a href="/items/new">добавь модель</a> из каталога.
+  </p>
+</div>
+{% endif %}
 
 <nav class="quick-actions" aria-label="Быстрые действия">
   <a class="quick-action" href="/scan">

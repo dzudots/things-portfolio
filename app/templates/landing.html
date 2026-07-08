@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ product_name }} — {{ product_tagline }}{% endblock %}
 {% block content %}
 {% import "icons.html" as icons %}
@@ -16,7 +16,34 @@
   <div class="hero-points">
     <div class="hero-point"><strong>{{ icons.icon('chart', 16, 'icon--inline') }} live mid</strong><span>диапазон + % за 7 дней</span></div>
     <div class="hero-point"><strong>{{ icons.icon('lock', 16, 'icon--inline') }} приватно</strong><span>шифруем, не для налоговой</span></div>
-    <div class="hero-point"><strong>{{ icons.icon('phone', 16, 'icon--inline') }} приложение</strong><span>Стак на экран Домой</span></div>
+    <div class="hero-point"><strong>{{ icons.icon('phone', 16, 'icon--inline') }} приложение</strong><span>{{ product_name }} на экран Домой</span></div>
   </div>
+</section>
+
+<section class="how-it-works">
+  <h2 class="how-it-works__title">Как работает</h2>
+  <ol class="how-steps">
+    <li>
+      <span class="how-steps__num">1</span>
+      <div>
+        <strong>Добавь или сфоткай</strong>
+        <p>Выбери модель из каталога или открой <em>Скан</em> — AI узнает вещь по фото.</p>
+      </div>
+    </li>
+    <li>
+      <span class="how-steps__num">2</span>
+      <div>
+        <strong>Смотри тикер</strong>
+        <p>Оценка как диапазон (low–mid–high) по объявлениям СНГ + % за неделю.</p>
+      </div>
+    </li>
+    <li>
+      <span class="how-steps__num">3</span>
+      <div>
+        <strong>Лови мувы</strong>
+        <p>Алерты в приложении и (скоро) в Telegram — без брокера и без налоговой.</p>
+      </div>
+    </li>
+  </ol>
 </section>
 {% endblock %}

@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}{{ item.model | model_label }} — Вещи{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}{{ item.model | model_label }} — {{ product_name }}{% endblock %}
 {% block content %}
 {% import "icons.html" as icons %}
 <a class="back-link" href="/portfolio">{{ icons.icon('chevron-left', 16, 'icon--inline') }} назад в стак</a>
