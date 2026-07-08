@@ -961,7 +961,7 @@ def health():
     return {
         "ok": True,
         "ai_provider_ready": provider_ready(),
-        "product": "things-portfolio",
+        "product": PRODUCT_NAME,
     }
 
 
