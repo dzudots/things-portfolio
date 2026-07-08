@@ -72,6 +72,45 @@ class TelegramLinkTests(unittest.TestCase):
         self.assertIsNone(self.user.telegram_chat_id)
         self.assertFalse(self.user.telegram_alerts_enabled)
 
+    def test_status_command_requires_link(self):
+        from unittest.mock import patch
+
+        from app.telegram.handlers import handle_update
+
+        with patch("app.telegram.handlers.send_message") as send:
+            handle_update(
+                self.db,
+                {
+                    "message": {
+                        "chat": {"id": 12345, "username": "x"},
+                        "text": "/status",
+                    }
+                },
+            )
+            self.assertTrue(send.called)
+            self.assertIn("не привязан", send.call_args[0][1])
+
+    def test_status_command_with_link(self):
+        from unittest.mock import patch
+
+        from app.telegram.handlers import handle_update
+
+        token = create_link_token(self.db, self.user)
+        chat_id = self._chat_id()
+        consume_link_token(self.db, chat_id, token)
+        with patch("app.telegram.handlers.send_message") as send:
+            handle_update(
+                self.db,
+                {
+                    "message": {
+                        "chat": {"id": int(chat_id), "username": "x"},
+                        "text": "/status",
+                    }
+                },
+            )
+            self.assertTrue(send.called)
+            self.assertIn("статус", send.call_args[0][1].lower())
+
 
 if __name__ == "__main__":
     unittest.main()

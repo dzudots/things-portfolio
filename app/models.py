@@ -144,6 +144,7 @@ class User(Base):
     achievements: Mapped[list["UserAchievement"]] = relationship(back_populates="user")
     api_usage: Mapped[list["ApiUsage"]] = relationship(back_populates="user")
     scans: Mapped[list["ScanJob"]] = relationship(back_populates="user")
+    payments: Mapped[list["Payment"]] = relationship(back_populates="user")
 
     @property
     def display_name(self) -> str:
@@ -385,6 +386,28 @@ class ScanJob(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="scans")
+
+
+class Payment(Base):
+    """YooKassa payment ledger for Pro activation."""
+
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(32), default="yookassa")
+    provider_payment_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    amount_rub: Mapped[float] = mapped_column(Float, default=0.0)
+    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    plan_days: Mapped[int] = mapped_column(Integer, default=30)
+    description: Mapped[str] = mapped_column(String(200), default="")
+    confirmation_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    meta_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="payments")
 
 
 _connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

@@ -12,6 +12,12 @@
 </section>
 
 {% if error %}<div class="notice notice--error">{{ error }}</div>{% endif %}
+{% if paywall %}
+<div class="notice" style="margin-bottom:1rem">
+  Лимит Free исчерпан.
+  <a href="/account">Оформить Pro</a>
+</div>
+{% endif %}
 
 {% set step = 1 if not category else (2 if not selected else 3) %}
 <div class="steps" aria-label="Шаги">

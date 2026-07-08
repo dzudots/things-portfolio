@@ -53,17 +53,44 @@
   <div class="usage-meter" aria-hidden="true">
     <div class="usage-meter__fill" style="width:{{ [100, (100 * scans_used / free_scans_limit) | round(1)] | min }}%"></div>
   </div>
+  {% if yookassa_ready %}
+  <div class="pro-pay" style="margin-top:0.85rem">
+    <form method="post" action="/account/pro/pay" style="display:grid;gap:0.5rem">
+      <input type="hidden" name="period" value="month" />
+      <button class="btn btn-primary btn-block" type="submit">
+        {{ icons.icon('crown', 16) }} Pro · {{ pro_price_rub }} ₽ / мес
+      </button>
+    </form>
+    <form method="post" action="/account/pro/pay" style="margin-top:0.4rem">
+      <input type="hidden" name="period" value="year" />
+      <button class="btn btn-secondary btn-block" type="submit">
+        Год · {{ pro_price_year_rub }} ₽
+      </button>
+    </form>
+    <p class="muted small" style="margin-top:0.5rem">Оплата через ЮKassa. После оплаты Pro включится автоматически.</p>
+  </div>
+  {% endif %}
   <form class="form pro-redeem" method="post" action="/account/pro" style="margin-top:0.85rem">
     <label>Промокод Pro
       <input name="promo_code" placeholder="STAKBETA30" autocomplete="off" required />
     </label>
-    <button class="btn btn-primary btn-block" type="submit">
-      {{ icons.icon('crown', 16) }} Активировать Pro
+    <button class="btn {% if yookassa_ready %}btn-secondary{% else %}btn-primary{% endif %} btn-block" type="submit">
+      {{ icons.icon('crown', 16) }} Активировать промокодом
     </button>
   </form>
-  <p class="pro-plan__note muted small">Карты скоро. Сейчас — промокод (бета). Пример: <code>STAKBETA30</code></p>
+  {% if not yookassa_ready %}
+  <p class="pro-plan__note muted small">Карта подключается через ЮKassa. Сейчас — промокод (бета). Пример: <code>STAKBETA30</code></p>
   {% else %}
-  <p class="muted small" style="margin:0">Pro активен. Оплата картой появится позже — пока продлевай промокодом.</p>
+  <p class="pro-plan__note muted small">Или промокод для беты / инфлюенсеров.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted small" style="margin:0">Pro активен. Продли картой или промокодом.</p>
+  {% if yookassa_ready %}
+  <form method="post" action="/account/pro/pay" style="margin-top:0.75rem">
+    <input type="hidden" name="period" value="month" />
+    <button class="btn btn-primary btn-block" type="submit">Продлить · {{ pro_price_rub }} ₽ / мес</button>
+  </form>
+  {% endif %}
   <form class="form pro-redeem" method="post" action="/account/pro" style="margin-top:0.75rem">
     <label>Продлить промокодом
       <input name="promo_code" placeholder="STAKPRO90" autocomplete="off" required />

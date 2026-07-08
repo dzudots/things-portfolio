@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ product_name }} · Telegram{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Telegram Mini App</p>
+    <h1 class="page-title">{{ product_name }}</h1>
+    <p class="page-sub">{{ product_tagline }}</p>
+  </div>
+</section>
+
+{% if error %}
+<div class="error" style="margin-bottom:1rem">{{ error }}</div>
+{% endif %}
+
+{% if user %}
+<section class="value-block">
+  <div class="value-block__label">твой стак</div>
+  <div class="value-block__mid">{{ total_mid | money }}</div>
+  <div class="value-block__range">{{ item_count }} {{ item_count | things_count }}</div>
+</section>
+<div class="actions" style="display:grid;gap:0.6rem;margin-top:1rem">
+  <a class="btn btn-primary btn-block" href="/portfolio">Открыть портфель</a>
+  <a class="btn btn-secondary btn-block" href="/scan">Скан</a>
+  <a class="btn btn-secondary btn-block" href="/share/stack">Поделиться стаком</a>
+</div>
+{% else %}
+<div class="panel">
+  <p>Чтобы открыть стак внутри Telegram, привяжи аккаунт:</p>
+  <ol class="muted small">
+    <li>Открой сайт в браузере и войди</li>
+    <li>Аккаунт → «Подключить Telegram»</li>
+    <li>Вернись в бота и открой Mini App снова</li>
+  </ol>
+  {% if public_base %}
+  <a class="btn btn-primary btn-block" href="{{ public_base }}/login" target="_blank" rel="noopener">Войти на сайте</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function () {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) return;
+  tg.ready();
+  tg.expand();
+  var initData = tg.initData || "";
+  if (!initData) return;
+  fetch("/api/telegram/webapp-auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ init_data: initData }),
+    credentials: "same-origin"
+  }).then(function (r) { return r.json(); }).then(function (data) {
+    if (data && data.ok && !{{ 'true' if user else 'false' }}) {
+      window.location.reload();
+    }
+  }).catch(function () {});
+})();
+</script>
+{% endblock %}

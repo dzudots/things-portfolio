@@ -36,6 +36,8 @@ class ValuationResult:
     geo_level: str
     insufficient_data: bool
     method: str = "comps_percentile"
+    newest_observed_at: Optional[datetime] = None
+    freshness_days: Optional[int] = None
 
 
 def percentile(sorted_vals: Sequence[float], p: float) -> float:
@@ -78,7 +80,19 @@ def _apply_defect_multipliers(base: ValuationResult, defects: Sequence[str]) -> 
         geo_level=base.geo_level,
         insufficient_data=base.insufficient_data,
         method="comps_percentile_defect_adj",
+        newest_observed_at=base.newest_observed_at,
+        freshness_days=base.freshness_days,
     )
+
+
+def _freshness_meta(comps: list[CompListing]) -> tuple[Optional[datetime], Optional[int]]:
+    if not comps:
+        return None, None
+    newest = max(c.observed_at for c in comps if c.observed_at)
+    if newest.tzinfo is None:
+        newest = newest.replace(tzinfo=timezone.utc)
+    age = max(0, int((utcnow() - newest).total_seconds() // 86400))
+    return newest, age
 
 
 def fetch_comps(
@@ -177,6 +191,7 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
     weighted = _comps_to_weighted_prices(comps, item.location_city, item.location_region)
     prices = sorted(p for p, _ in weighted)
     insufficient = len(prices) < MIN_COMPS_FOR_CONFIDENCE
+    newest_obs, freshness_days = _freshness_meta(comps)
 
     if not prices:
         # Honest empty: wide unknown band around cost_basis or zero
@@ -191,6 +206,8 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
                 geo_level=geo_level,
                 insufficient_data=True,
                 method="no_comps",
+                newest_observed_at=None,
+                freshness_days=None,
             )
         result = ValuationResult(
             low=round(anchor * 0.7),
@@ -201,6 +218,8 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
             geo_level=geo_level,
             insufficient_data=True,
             method="cost_basis_fallback",
+            newest_observed_at=None,
+            freshness_days=None,
         )
         return _apply_defect_multipliers(result, defects)
 
@@ -223,6 +242,8 @@ def compute_valuation(db: Session, item: Item) -> ValuationResult:
         geo_level=geo_level,
         insufficient_data=insufficient,
         method="comps_weighted_percentile",
+        newest_observed_at=newest_obs,
+        freshness_days=freshness_days,
     )
 
     # If we used comps without matching defects, adjust

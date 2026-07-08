@@ -28,12 +28,20 @@ from app.ai.service import (
 )
 from app.alerts import build_weekly_digests, mark_alerts_read, unread_alerts
 from app.auth import (
+    assert_admin,
     authenticate,
     create_user,
     delete_user_account,
     export_user_data,
 )
-from app.billing import ensure_plan_fresh, is_pro, redeem_promo
+from app.billing import (
+    create_pro_checkout,
+    ensure_plan_fresh,
+    handle_yookassa_webhook,
+    is_pro,
+    redeem_promo,
+    yookassa_configured,
+)
 from app.config import (
     FREE_ITEM_LIMIT,
     FREE_SCANS_PER_DAY,
@@ -41,7 +49,10 @@ from app.config import (
     PRODUCT_NAME,
     PRODUCT_TAGLINE,
     PRO_ITEM_LIMIT,
+    PRO_PRICE_RUB,
+    PRO_PRICE_YEAR_RUB,
     PRO_SCANS_PER_DAY,
+    PUBLIC_BASE_URL,
     SESSION_COOKIE,
     TELEGRAM_BOT_TOKEN,
     TELEGRAM_WEBHOOK_PATH,
@@ -83,6 +94,7 @@ from app.telegram.client import get_bot_username, telegram_configured
 from app.telegram.handlers import handle_update
 from app.telegram.linking import create_link_token, unlink_telegram
 from app.telegram.setup import setup_telegram, shutdown_telegram
+from app.telegram.webapp import user_from_init_data, validate_init_data
 from app.valuation import (
     compute_valuation,
     display_mid,
@@ -291,6 +303,17 @@ def require_user(
     return ensure_plan_fresh(db, user)
 
 
+def require_admin(
+    request: Request, db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Admin gate: allowlisted email (session) and/or THINGS_ADMIN_API_KEY."""
+    user = get_current_user(request, db)
+    if user:
+        user = ensure_plan_fresh(db, user)
+    assert_admin(request, user)
+    return user
+
+
 def _achievement_toast(db: Session, user: User) -> list[dict]:
     """Evaluate, then return unseen unlocks for a one-shot toast (marks seen)."""
     evaluate_achievements(db, user.id)
@@ -432,6 +455,7 @@ def register_submit(
             status_code=400,
         )
     user = create_user(db, email, password, display_name, accept_privacy=True)
+    track_event(db, user.id, "register", {})
     resp = RedirectResponse("/portfolio", status_code=303)
     _set_session(resp, user.id)
     return resp
@@ -625,6 +649,8 @@ async def create_item(
     count = db.query(Item).filter(Item.owner_id == user.id).count()
     limit = PRO_ITEM_LIMIT if is_pro(user) else FREE_ITEM_LIMIT
     if count >= limit:
+        if not is_pro(user):
+            track_event(db, user.id, "hit_limit", {"kind": "items", "limit": limit})
         return templates.TemplateResponse(
             "item_new.html",
             {
@@ -641,6 +667,7 @@ async def create_item(
                 "cities": city_choices(),
                 "error": f"Лимит тарифа: {limit} вещей"
                 + ("" if is_pro(user) else " · активируй Pro в аккаунте"),
+                "paywall": not is_pro(user),
             },
             status_code=400,
         )
@@ -861,7 +888,8 @@ def alerts_mark_read(
 
 
 @app.post("/api/admin/digest")
-def api_digest_now(user: User = Depends(require_user)):
+def api_digest_now(user: Optional[User] = Depends(require_admin)):
+    del user
     n = build_weekly_digests()
     return {"digests_created": n}
 
@@ -894,6 +922,9 @@ def _account_ctx(
         "free_scans_limit": FREE_SCANS_PER_DAY,
         "pro_scans_limit": PRO_SCANS_PER_DAY,
         "scans_used": scans_today(db, user.id),
+        "yookassa_ready": yookassa_configured(),
+        "pro_price_rub": PRO_PRICE_RUB,
+        "pro_price_year_rub": PRO_PRICE_YEAR_RUB,
     }
 
 
@@ -904,10 +935,14 @@ def account_page(
     user: User = Depends(require_user),
     saved: Optional[str] = None,
     pro: Optional[str] = None,
+    paid: Optional[str] = None,
 ):
+    msg = pro
+    if paid:
+        msg = msg or "Если оплата прошла — Pro активируется за минуту. Обнови страницу."
     return templates.TemplateResponse(
         "account.html",
-        _account_ctx(request, db, user, saved=saved, pro_message=pro),
+        _account_ctx(request, db, user, saved=saved, pro_message=msg),
     )
 
 
@@ -960,6 +995,35 @@ def account_pro_redeem(
     )
 
 
+@app.post("/account/pro/pay")
+def account_pro_pay(
+    request: Request,
+    period: Annotated[str, Form()] = "month",
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    track_event(db, user.id, "pay_cta", {"period": period})
+    result = create_pro_checkout(db, user, period=period if period in {"month", "year"} else "month")
+    if not result.ok or not result.confirmation_url:
+        return templates.TemplateResponse(
+            "account.html",
+            _account_ctx(request, db, user, error=result.message),
+            status_code=400,
+        )
+    return RedirectResponse(result.confirmation_url, status_code=303)
+
+
+@app.post("/api/billing/yookassa/webhook")
+async def yookassa_webhook(request: Request, db: Session = Depends(get_db)):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json")
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "invalid payload")
+    return handle_yookassa_webhook(db, payload)
+
+
 @app.post("/account/telegram/link")
 def account_telegram_link(
     db: Session = Depends(get_db),
@@ -1001,6 +1065,93 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     if isinstance(update, dict):
         handle_update(db, update)
     return {"ok": True}
+
+
+def _stack_summary(db: Session, user: User) -> tuple[float, int, list[dict]]:
+    items = (
+        db.query(Item)
+        .options(joinedload(Item.model), joinedload(Item.valuations))
+        .filter(Item.owner_id == user.id)
+        .all()
+    )
+    total = 0.0
+    lines: list[dict] = []
+    for item in items:
+        mid = display_mid(item, latest_snapshot(item))
+        if mid is None:
+            continue
+        total += mid
+        name = f"{item.model.brand} {item.model.name}" if item.model else f"#{item.id}"
+        # Share card: category + model only (no city / email / notes)
+        lines.append({"name": name, "mid": mid, "category": item.category})
+    lines.sort(key=lambda x: -x["mid"])
+    return total, len(lines), lines[:12]
+
+
+@app.get("/tg", response_class=HTMLResponse)
+def telegram_miniapp(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user),
+):
+    total = 0.0
+    count = 0
+    if user:
+        user = ensure_plan_fresh(db, user)
+        total, count, _ = _stack_summary(db, user)
+    return templates.TemplateResponse(
+        "tg.html",
+        {
+            "request": request,
+            "user": user,
+            "total_mid": total,
+            "item_count": count,
+            "error": None,
+            "public_base": PUBLIC_BASE_URL,
+        },
+    )
+
+
+@app.post("/api/telegram/webapp-auth")
+async def telegram_webapp_auth(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json")
+    init_data = str((body or {}).get("init_data") or "")
+    if not validate_init_data(init_data):
+        raise HTTPException(403, "invalid initData")
+    user = user_from_init_data(db, init_data)
+    if not user:
+        return {"ok": False, "linked": False, "message": "Привяжи Telegram в аккаунте на сайте"}
+    resp = JSONResponse({"ok": True, "linked": True, "email": user.email})
+    _set_session(resp, user.id)
+    return resp
+
+
+@app.get("/share/stack", response_class=HTMLResponse)
+def share_stack(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    total, count, lines = _stack_summary(db, user)
+    share_text = (
+        f"Мой стак в {PRODUCT_NAME}: {int(total):,} ₽ · {count} вещей\n".replace(",", " ")
+        + "\n".join(f"· {l['name']}" for l in lines[:8])
+        + (f"\n{PUBLIC_BASE_URL}" if PUBLIC_BASE_URL else "")
+    )
+    return templates.TemplateResponse(
+        "share_stack.html",
+        {
+            "request": request,
+            "user": user,
+            "total_mid": total,
+            "item_count": count,
+            "lines": lines,
+            "share_text": share_text,
+        },
+    )
 
 
 @app.get("/account/export")
@@ -1284,13 +1435,15 @@ def metrics_page(
 
 
 @app.post("/api/admin/revalue")
-def api_revalue(user: User = Depends(require_user)):
+def api_revalue(user: Optional[User] = Depends(require_admin)):
+    del user
     n = revalue_all_items()
     return {"revalued": n}
 
 
 @app.get("/api/admin/comps/sources")
-def api_comps_sources(user: User = Depends(require_user)):
+def api_comps_sources(user: Optional[User] = Depends(require_admin)):
+    del user
     return {
         "sources": [
             {"id": s, "label": SOURCE_LABELS.get(s, s), "ingestable": True}
@@ -1303,8 +1456,9 @@ def api_comps_sources(user: User = Depends(require_user)):
 def api_comps_ingest(
     payload: dict,
     db: Session = Depends(get_db),
-    user: User = Depends(require_user),
+    user: Optional[User] = Depends(require_admin),
 ):
+    del user
     source = str(payload.get("source") or "manual_json").strip()
     if source not in INGESTABLE_SOURCES:
         raise HTTPException(400, f"source not allowed: {source}")
@@ -1318,6 +1472,7 @@ def api_comps_ingest(
 @app.post("/api/admin/comps/refresh")
 def api_comps_refresh(
     db: Session = Depends(get_db),
-    user: User = Depends(require_user),
+    user: Optional[User] = Depends(require_admin),
 ):
+    del user
     return refresh_market_comps(db)

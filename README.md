@@ -56,22 +56,25 @@ THINGS_SECRET_KEY=...
 THINGS_DATA_KEY=...   # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 THINGS_DATABASE_URL=sqlite:///...  # или Postgres
 
-# AI (OpenAI-compatible: OpenAI / Poe / OpenRouter)
-THINGS_AI_API_KEY=...
-THINGS_AI_BASE_URL=https://api.openai.com/v1
-THINGS_AI_MODEL=gpt-4o-mini
-THINGS_AI_MARKUP_PCT=20          # наценка 10–30% на cost модели
+# AI via Poe (OpenAI-compatible, vision scan)
+THINGS_AI_API_KEY=...                 # sk-poe-... from poe.com (не коммитить)
+THINGS_AI_BASE_URL=https://api.poe.com/v1
+THINGS_AI_MODEL=claude-haiku-4.5      # vision + дёшево; alt: gemini-2.5-flash-lite
+THINGS_AI_MARKUP_PCT=15
 THINGS_FREE_SCANS_PER_DAY=5
 THINGS_PRO_SCANS_PER_DAY=50
 # без ключа или THINGS_AI_FORCE_MOCK=1 — стабильный mock-режим
+# ЮKassa позже: THINGS_YOOKASSA_SHOP_ID / THINGS_YOOKASSA_SECRET_KEY
+THINGS_ADMIN_EMAILS=you@email.com
+THINGS_ADMIN_API_KEY=...
 ```
 
 API: `POST /api/scan` (multipart `photo`), `GET /api/usage`, `GET /health`.
 
-**Comps ingest (admin, logged-in):**
+**Comps ingest (admin):** нужен `THINGS_ADMIN_EMAILS` или `X-Admin-Key`:
 - `GET /api/admin/comps/sources` — whitelist source ids
 - `POST /api/admin/comps/ingest` — body `{"source":"manual_json","rows":[...]}`
-- `POST /api/admin/comps/refresh` — mock market refresh (scheduled 02:00 UTC)
+- `POST /api/admin/comps/refresh` — partner_feed, иначе mock (cron 02:00 UTC)
 - CLI: `python scripts/ingest_comps.py data/sample_comps_ingest.json`
 
 Наценка на AI: **10–30%** от estimated provider cost (дешёвые модели ближе к 10–15%, тяжёлые vision — до 30%). Цель сейчас — стабильность продукта; пассивный доход вторичен.
@@ -99,7 +102,9 @@ API: `POST /api/scan` (multipart `photo`), `GET /api/usage`, `GET /health`.
 | `DATABASE_URL` или `THINGS_DATABASE_URL` | Postgres (рекомендуется) |
 | `THINGS_UPLOAD_DIR` | `/data/uploads/scans` (volume) |
 
-Опционально: `THINGS_AI_*` (без ключа — mock-режим скана).
+Опционально: `THINGS_AI_*` (Poe: `https://api.poe.com/v1` + `claude-haiku-4.5`; без ключа — mock).
+`THINGS_ADMIN_EMAILS` / `THINGS_ADMIN_API_KEY` — иначе `/api/admin/*` закрыт.
+ЮKassa: `THINGS_YOOKASSA_*` когда будет магазин.
 
 ### Секреты GitHub Actions
 

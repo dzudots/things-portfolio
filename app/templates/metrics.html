@@ -34,6 +34,20 @@
   </ul>
 </div>
 
+{% if metrics.funnel %}
+<div class="panel">
+  <strong>Воронка Pro (7д)</strong>
+  <ul class="item-list">
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">register → <strong>{{ metrics.funnel.register_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">item_add → <strong>{{ metrics.funnel.item_add_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">hit_limit → <strong>{{ metrics.funnel.hit_limit_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">pay_cta → <strong>{{ metrics.funnel.pay_cta_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">pay_start → <strong>{{ metrics.funnel.pay_start_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">pay_success → <strong>{{ metrics.funnel.pay_success_7d }}</strong></li>
+  </ul>
+</div>
+{% endif %}
+
 <div class="panel">
   <strong>Сигналы</strong>
   <p class="muted">

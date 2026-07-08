@@ -34,6 +34,10 @@ def can_scan(db: Session, user: User) -> tuple[bool, str]:
     used = scans_today(db, user.id)
     limit = scan_limit_for(user)
     if used >= limit:
+        if not is_pro(user):
+            from app.metrics import track_event
+
+            track_event(db, user.id, "hit_limit", {"kind": "scans", "limit": limit})
         return False, f"Лимит сканов на сегодня: {limit}. Завтра снова или Pro."
     return True, ""
 

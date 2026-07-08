@@ -3,25 +3,58 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import bcrypt
+import hmac
 
-# passlib 1.7.x expects bcrypt.__about__.__version__ (removed in bcrypt 4.1+)
-if not hasattr(bcrypt, "__about__"):
-    bcrypt.__about__ = type("_About", (), {"__version__": bcrypt.__version__})()  # type: ignore[attr-defined]
-
-from passlib.context import CryptContext
+from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
+from app.config import ADMIN_API_KEY, ADMIN_EMAILS
 from app.models import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+
+def is_admin_email(email: str | None) -> bool:
+    if not email or not ADMIN_EMAILS:
+        return False
+    return email.strip().lower() in ADMIN_EMAILS
+
+
+def admin_key_ok(request: Request) -> bool:
+    if not ADMIN_API_KEY:
+        return False
+    header = (request.headers.get("X-Admin-Key") or "").strip()
+    auth = (request.headers.get("Authorization") or "").strip()
+    key = header or (auth[7:].strip() if auth.lower().startswith("bearer ") else "")
+    if not key:
+        return False
+    return hmac.compare_digest(key.encode("utf-8"), ADMIN_API_KEY.encode("utf-8"))
+
+
+def assert_admin(request: Request, user: User | None) -> None:
+    """
+    Gate for /api/admin/* — needs THINGS_ADMIN_API_KEY and/or allowlisted email.
+    Logged-in non-admin users are always rejected.
+    """
+    if not ADMIN_EMAILS and not ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin API locked: set THINGS_ADMIN_EMAILS or THINGS_ADMIN_API_KEY",
+        )
+    if admin_key_ok(request):
+        return
+    if user is not None and is_admin_email(user.email):
+        return
+    raise HTTPException(status_code=403, detail="Admin access required")
 
 
 def create_user(
@@ -55,6 +88,7 @@ def delete_user_account(db: Session, user: User) -> None:
     from app.models import (
         ApiUsage,
         Item,
+        Payment,
         PriceAlert,
         ScanJob,
         UserAchievement,
@@ -80,6 +114,7 @@ def delete_user_account(db: Session, user: User) -> None:
         synchronize_session=False
     )
     db.query(UserEvent).filter(UserEvent.user_id == user.id).delete(synchronize_session=False)
+    db.query(Payment).filter(Payment.user_id == user.id).delete(synchronize_session=False)
     # Clear FK from scans → usage, then both ledgers
     db.query(ScanJob).filter(ScanJob.user_id == user.id).update(
         {ScanJob.usage_id: None}, synchronize_session=False

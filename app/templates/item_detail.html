@@ -41,12 +41,28 @@
   {% if item.override_mid is not none %}
   <div class="value-block__note">в портфеле твоя оценка: {{ item.override_mid | money }}</div>
   {% endif %}
+  <div class="value-block__comps muted small">
+    {{ market.comps_count }} comps ·
+    {% if market.geo_level == 'city' %}город{% elif market.geo_level == 'region' %}регион{% else %}страна{% endif %}
+    {% if market.freshness_days is not none %}
+      · обновлено
+      {% if market.freshness_days == 0 %}сегодня
+      {% elif market.freshness_days == 1 %}1 дн. назад
+      {% else %}{{ market.freshness_days }} дн. назад{% endif %}
+    {% endif %}
+  </div>
   <details class="why-details">
     <summary>почему такая цена</summary>
     <p>
       {{ market.comps_count }} похожих объявлений,
       бакет «{{ CONDITION_LABELS.get(item.condition, item.condition) }}»,
       {% if market.geo_level == 'city' %}город{% elif market.geo_level == 'region' %}регион{% else %}страна{% endif %}
+      {% if market.freshness_days is not none %}
+        · свежесть comps:
+        {% if market.freshness_days == 0 %}сегодня
+        {% elif market.freshness_days == 1 %}1 дн. назад
+        {% else %}{{ market.freshness_days }} дн. назад{% endif %}
+      {% endif %}
       {% if item.defect_list() %}
         · дефекты:
         {% for d in item.defect_list() %}{{ DEFECT_LABELS.get(d, d) }}{% if not loop.last %}, {% endif %}{% endfor %}

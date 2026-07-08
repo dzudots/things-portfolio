@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Мой стак — {{ product_name }}{% endblock %}
+{% block content %}
+<section class="share-card" style="padding:1.5rem 0 2rem">
+  <p class="eyebrow">{{ product_name }}</p>
+  <h1 class="page-title" style="font-size:clamp(1.8rem,6vw,2.6rem)">мой стак</h1>
+  <p class="page-sub">без личных данных · только сумма и состав</p>
+
+  <div class="value-block" style="margin-top:1.25rem">
+    <div class="value-block__label">оценка рынка</div>
+    <div class="value-block__mid">{{ total_mid | money }}</div>
+    <div class="value-block__range">{{ item_count }} {{ item_count | things_count }}</div>
+  </div>
+
+  {% if lines %}
+  <ul class="share-list" style="list-style:none;padding:0;margin:1.25rem 0 0;display:grid;gap:0.55rem">
+    {% for line in lines %}
+    <li style="display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid color-mix(in srgb, var(--text) 12%, transparent);padding-bottom:0.45rem">
+      <span>{{ line.name }}</span>
+      <strong>{{ line.mid | money }}</strong>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <p class="muted small" style="margin-top:1.25rem">Скрин для Stories · {{ product_name }} не показывает email и город</p>
+  <div class="actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:1rem">
+    <button class="btn btn-primary" type="button" id="share-copy">Скопировать текст</button>
+    <a class="btn btn-secondary" href="/portfolio">В портфель</a>
+  </div>
+</section>
+<script>
+(function () {
+  var text = {{ share_text | tojson }};
+  var btn = document.getElementById("share-copy");
+  if (!btn) return;
+  btn.addEventListener("click", function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Скопировано";
+      });
+    }
+  });
+})();
+</script>
+{% endblock %}

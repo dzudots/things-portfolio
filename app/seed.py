@@ -72,46 +72,84 @@ def _car(brand: str, name: str, year: int, good: int, **attrs) -> dict:
 
 # Major phone models for CIS Gen Z (seed comps). Prices ≈ secondary mid (RUB).
 MODELS = [
-    # Apple
+    # Apple iPhone 12–16 (+ SE)
     _phone("Apple", "iPhone 16 Pro Max 256GB", 2024, "256GB", 118000),
     _phone("Apple", "iPhone 16 Pro 256GB", 2024, "256GB", 105000),
+    _phone("Apple", "iPhone 16 Plus 128GB", 2024, "128GB", 88000),
     _phone("Apple", "iPhone 16 128GB", 2024, "128GB", 78000),
     _phone("Apple", "iPhone 15 Pro Max 256GB", 2023, "256GB", 92000),
     _phone("Apple", "iPhone 15 Pro 256GB", 2023, "256GB", 85000),
+    _phone("Apple", "iPhone 15 Plus 128GB", 2023, "128GB", 68000),
     _phone("Apple", "iPhone 15 128GB", 2023, "128GB", 62000),
+    _phone("Apple", "iPhone 14 Pro Max 256GB", 2022, "256GB", 72000),
     _phone("Apple", "iPhone 14 Pro 256GB", 2022, "256GB", 62000),
+    _phone("Apple", "iPhone 14 Plus 128GB", 2022, "128GB", 52000),
     _phone("Apple", "iPhone 14 128GB", 2022, "128GB", 48000),
+    _phone("Apple", "iPhone 13 Pro Max 256GB", 2021, "256GB", 58000),
+    _phone("Apple", "iPhone 13 Pro 256GB", 2021, "256GB", 52000),
     _phone("Apple", "iPhone 13 128GB", 2021, "128GB", 42000),
+    _phone("Apple", "iPhone 13 mini 128GB", 2021, "128GB", 36000),
+    _phone("Apple", "iPhone 12 Pro Max 256GB", 2020, "256GB", 42000),
+    _phone("Apple", "iPhone 12 Pro 128GB", 2020, "128GB", 36000),
     _phone("Apple", "iPhone 12 128GB", 2020, "128GB", 32000),
+    _phone("Apple", "iPhone 12 mini 64GB", 2020, "64GB", 26000),
     _phone("Apple", "iPhone SE 2022 64GB", 2022, "64GB", 28000),
-    # Samsung
+    # Samsung Galaxy S / A / Z
     _phone("Samsung", "Galaxy S24 Ultra 256GB", 2024, "256GB", 78000),
+    _phone("Samsung", "Galaxy S24+ 256GB", 2024, "256GB", 62000),
     _phone("Samsung", "Galaxy S24 256GB", 2024, "256GB", 52000),
     _phone("Samsung", "Galaxy S23 Ultra 256GB", 2023, "256GB", 58000),
+    _phone("Samsung", "Galaxy S23+ 256GB", 2023, "256GB", 48000),
     _phone("Samsung", "Galaxy S23 256GB", 2023, "256GB", 42000),
+    _phone("Samsung", "Galaxy S22 Ultra 256GB", 2022, "256GB", 42000),
+    _phone("Samsung", "Galaxy S22 128GB", 2022, "128GB", 32000),
     _phone("Samsung", "Galaxy A55 256GB", 2024, "256GB", 28000),
+    _phone("Samsung", "Galaxy A54 256GB", 2023, "256GB", 24000),
     _phone("Samsung", "Galaxy A35 128GB", 2024, "128GB", 20000),
+    _phone("Samsung", "Galaxy A25 128GB", 2024, "128GB", 16000),
+    _phone("Samsung", "Galaxy A15 128GB", 2024, "128GB", 12000),
     _phone("Samsung", "Galaxy Z Flip5 256GB", 2023, "256GB", 48000),
+    _phone("Samsung", "Galaxy Z Fold5 256GB", 2023, "256GB", 78000),
     # Xiaomi / Redmi / Poco
+    _phone("Xiaomi", "Xiaomi 14 Ultra 512GB", 2024, "512GB", 72000),
     _phone("Xiaomi", "Xiaomi 14 256GB", 2024, "256GB", 42000),
+    _phone("Xiaomi", "Xiaomi 13T Pro 256GB", 2023, "256GB", 36000),
     _phone("Xiaomi", "Xiaomi 13 256GB", 2023, "256GB", 32000),
+    _phone("Xiaomi", "Redmi Note 13 Pro+ 256GB", 2024, "256GB", 28000),
     _phone("Xiaomi", "Redmi Note 13 Pro 256GB", 2024, "256GB", 22000),
+    _phone("Xiaomi", "Redmi Note 12 Pro 256GB", 2023, "256GB", 18000),
     _phone("Xiaomi", "Poco X6 Pro 256GB", 2024, "256GB", 24000),
-    # Google / Nothing / OnePlus / Realme / Honor / Huawei
+    _phone("Xiaomi", "Poco F6 256GB", 2024, "256GB", 32000),
+    _phone("Xiaomi", "Poco M6 Pro 256GB", 2024, "256GB", 16000),
+    # Google Pixel
+    _phone("Google", "Pixel 9 Pro 128GB", 2024, "128GB", 72000),
+    _phone("Google", "Pixel 9 128GB", 2024, "128GB", 58000),
     _phone("Google", "Pixel 8 Pro 128GB", 2023, "128GB", 52000),
     _phone("Google", "Pixel 8 128GB", 2023, "128GB", 40000),
+    _phone("Google", "Pixel 8a 128GB", 2024, "128GB", 32000),
+    _phone("Google", "Pixel 7a 128GB", 2023, "128GB", 26000),
+    # Nothing / OnePlus / Realme / Honor / Huawei
+    _phone("Nothing", "Nothing Phone (2a) 256GB", 2024, "256GB", 28000),
     _phone("Nothing", "Nothing Phone (2) 256GB", 2023, "256GB", 38000),
     _phone("OnePlus", "OnePlus 12 256GB", 2024, "256GB", 48000),
+    _phone("OnePlus", "OnePlus Nord 3 256GB", 2023, "256GB", 28000),
     _phone("Realme", "Realme GT 5 256GB", 2023, "256GB", 30000),
+    _phone("Realme", "Realme 12 Pro+ 256GB", 2024, "256GB", 26000),
     _phone("Honor", "Honor 200 256GB", 2024, "256GB", 28000),
+    _phone("Honor", "Honor Magic6 Lite 256GB", 2024, "256GB", 22000),
     _phone("Huawei", "Huawei Pura 70 256GB", 2024, "256GB", 52000),
+    _phone("Huawei", "Huawei Nova 12 256GB", 2024, "256GB", 28000),
     # Laptops
     _laptop("Apple", "MacBook Air M3 8/256", 2024, 98000, cpu="M3", ram="8GB", storage="256GB"),
     _laptop("Apple", "MacBook Air M2 8/256", 2022, 82000, cpu="M2", ram="8GB", storage="256GB"),
     _laptop("Apple", "MacBook Pro 14 M3 16/512", 2023, 148000, cpu="M3", ram="16GB", storage="512GB"),
+    _laptop("Apple", "MacBook Pro 14 M2 16/512", 2023, 128000, cpu="M2", ram="16GB", storage="512GB"),
     _laptop("ASUS", "ASUS Zenbook 14 OLED i7/16/512", 2023, 68000, cpu="i7", ram="16GB", storage="512GB"),
+    _laptop("ASUS", "ASUS ROG Zephyrus G14 2023", 2023, 98000, cpu="Ryzen9", ram="16GB", storage="512GB"),
     _laptop("Lenovo", "Lenovo ThinkPad X1 Carbon Gen 10", 2022, 75000, cpu="i7", ram="16GB", storage="512GB"),
+    _laptop("Lenovo", "Lenovo Yoga Slim 7 14", 2023, 62000, cpu="Ryzen7", ram="16GB", storage="512GB"),
     _laptop("Huawei", "Huawei MateBook D16 i5/16/512", 2023, 52000, cpu="i5", ram="16GB", storage="512GB"),
+    _laptop("Xiaomi", "Xiaomi RedmiBook 15 i5/16/512", 2023, 42000, cpu="i5", ram="16GB", storage="512GB"),
     # Cars (popular CIS)
     _car("Toyota", "Toyota Camry 2.5 2019", 2019, 2200000, engine="2.5", mileage_bucket="80-120k"),
     _car("Hyundai", "Hyundai Solaris 1.6 2020", 2020, 1200000, engine="1.6", mileage_bucket="40-80k"),
@@ -119,6 +157,8 @@ MODELS = [
     _car("Volkswagen", "Volkswagen Polo 1.6 2018", 2018, 980000, engine="1.6", mileage_bucket="80-120k"),
     _car("Lada", "Lada Vesta 1.6 2021", 2021, 980000, engine="1.6", mileage_bucket="40-80k"),
     _car("Geely", "Geely Coolray 1.5 2022", 2022, 1650000, engine="1.5", mileage_bucket="20-60k"),
+    _car("Haval", "Haval Jolion 1.5 2022", 2022, 1750000, engine="1.5", mileage_bucket="20-60k"),
+    _car("Chery", "Chery Tiggo 7 Pro 1.5 2022", 2022, 1850000, engine="1.5", mileage_bucket="20-60k"),
 ]
 
 CITIES = [
@@ -142,7 +182,23 @@ CITIES = [
 
 
 def _search_text(brand: str, name: str) -> str:
-    return f"{brand} {name}".lower()
+    """Aliases help match_canonical (Galaxy↔Samsung, Redmi/Poco↔Xiaomi, etc.)."""
+    base = f"{brand} {name}".lower()
+    aliases: list[str] = []
+    b = brand.lower()
+    n = name.lower()
+    if b == "samsung" or "galaxy" in n:
+        aliases += ["samsung", "galaxy", "самсунг"]
+    if b == "apple" or "iphone" in n or "macbook" in n:
+        aliases += ["apple", "iphone", "айфон", "macbook", "макбук"]
+    if b == "xiaomi" or "redmi" in n or "poco" in n:
+        aliases += ["xiaomi", "redmi", "poco", "сяоми"]
+    if b == "google" or "pixel" in n:
+        aliases += ["google", "pixel", "гугл"]
+    if "nothing" in b or "nothing" in n:
+        aliases += ["nothing phone"]
+    # storage / generation tokens already in name
+    return " ".join([base] + aliases)
 
 
 def seed_models_and_comps(db, rng: random.Random) -> list[CanonicalModel]:
@@ -282,9 +338,15 @@ def seed_demo_user(db, models: list[CanonicalModel]) -> User:
 
 def ensure_catalog(db) -> int:
     """Add missing canonical models + comps without wiping existing data (prod-safe)."""
+    # Refresh search aliases for existing rows
+    for m in db.query(CanonicalModel).all():
+        desired = _search_text(m.brand, m.name)
+        if (m.search_text or "") != desired:
+            m.search_text = desired
     existing = {(m.brand, m.name) for m in db.query(CanonicalModel).all()}
     missing = [s for s in MODELS if (s["brand"], s["name"]) not in existing]
     if not missing:
+        db.commit()
         return 0
     rng = random.Random(42 + len(existing))
     now = utcnow()
@@ -335,6 +397,7 @@ def run_seed(reset: bool = True) -> None:
             # Clear in FK order
             from app.models import (
                 ApiUsage,
+                Payment,
                 PriceAlert,
                 ScanJob,
                 UserAchievement,
@@ -347,6 +410,7 @@ def run_seed(reset: bool = True) -> None:
             db.query(WeeklyDigest).delete()
             db.query(UserAchievement).delete()
             db.query(UserEvent).delete()
+            db.query(Payment).delete()
             db.query(ScanJob).delete()
             db.query(ApiUsage).delete()
             db.query(ValuationSnapshot).delete()

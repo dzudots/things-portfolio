@@ -150,6 +150,23 @@ def build_weekly_digests(db: Session | None = None) -> int:
                     body_json=json.dumps(body, ensure_ascii=False),
                 )
             )
+            db.flush()
+            digest = (
+                db.query(WeeklyDigest)
+                .filter(
+                    WeeklyDigest.user_id == user.id,
+                    WeeklyDigest.week_start == week_start,
+                )
+                .order_by(WeeklyDigest.id.desc())
+                .first()
+            )
+            if digest:
+                try:
+                    from app.telegram.notify import notify_weekly_digest
+
+                    notify_weekly_digest(digest, user)
+                except Exception:
+                    logger.exception("Telegram digest push failed for user_id=%s", user.id)
             created += 1
         db.commit()
         logger.info("Created %s weekly digests for week %s", created, week_start)

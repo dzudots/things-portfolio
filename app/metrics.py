@@ -101,6 +101,24 @@ def compute_metrics(db: Session) -> dict[str, Any]:
         or 0
     )
 
+    def _count_event(name: str) -> int:
+        return (
+            db.query(func.count(UserEvent.id))
+            .filter(UserEvent.event_type == name, UserEvent.created_at >= week_ago)
+            .scalar()
+            or 0
+        )
+
+    funnel = {
+        "register_7d": _count_event("register"),
+        "item_add_7d": item_adds_week,
+        "hit_limit_7d": _count_event("hit_limit"),
+        "pay_cta_7d": _count_event("pay_cta"),
+        "pay_start_7d": _count_event("pay_start"),
+        "pay_success_7d": _count_event("pay_success"),
+        "pro_activate_7d": _count_event("pro_activate"),
+    }
+
     return {
         "total_users": total_users,
         "total_items": total_items,
@@ -111,6 +129,7 @@ def compute_metrics(db: Session) -> dict[str, Any]:
         "override_rate": override_rate,
         "item_adds_last_7d": item_adds_week,
         "condition_updates_last_7d": condition_updates_week,
+        "funnel": funnel,
         "success_signals": {
             "retention_ok": weekly_retention is not None and weekly_retention >= 0.3,
             "engagement_ok": (item_adds_week + condition_updates_week) > 0,

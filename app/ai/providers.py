@@ -112,7 +112,7 @@ async def identify_from_image(
     payload = {
         "model": model,
         "temperature": 0.1,
-        "response_format": {"type": "json_object"},
+        # Poe ignores response_format; keep for OpenAI-compatible hosts that support it
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {
@@ -120,13 +120,15 @@ async def identify_from_image(
                 "content": [
                     {
                         "type": "text",
-                        "text": "Определи вещь на фото для оценки на вторичном рынке СНГ.",
+                        "text": "Определи вещь на фото для оценки на вторичном рынке СНГ. Ответ — только JSON.",
                     },
                     {"type": "image_url", "image_url": {"url": data_url}},
                 ],
             },
         ],
     }
+    if "poe.com" not in AI_BASE_URL.lower():
+        payload["response_format"] = {"type": "json_object"}
 
     headers = {
         "Authorization": f"Bearer {AI_API_KEY}",
