@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Портфель — Вещи{% endblock %}
+{% block content %}
+{% import "icons.html" as icons %}
+<section class="app-bar">
+  <div>
+    <p class="eyebrow">твой стак</p>
+    <h1 class="app-bar__title">Портфель</h1>
+    <p class="app-bar__meta">{{ rows|length | things_count }} · live-оценка рынка</p>
+  </div>
+  <div class="app-bar__actions">
+    <a class="chip-link" href="/achievements" title="Бейджи">{{ icons.icon('badge', 14) }} {{ achievement_progress.unlocked_count if achievement_progress else 0 }}/{{ achievement_progress.total if achievement_progress else 14 }}</a>
+    <a class="btn btn-primary btn-compact" href="/items/new">{{ icons.icon('plus', 14) }} Вещь</a>
+  </div>
+</section>
+
+<div class="ticker-card">
+  <div class="ticker-card__top">
+    <div>
+      <div class="ticker-card__label">Сейчас стоит</div>
+      <div class="ticker-card__value">{{ total_mid | money }}</div>
+    </div>
+    {% if week_pct_total is not none and week_pct_total|abs >= 0.3 %}
+    <span class="pill {% if week_pct_total >= 0 %}pill--up{% else %}pill--down{% endif %}">
+      {% if week_pct_total >= 0 %}{{ icons.icon('trend-up', 12) }}{% else %}{{ icons.icon('trend-down', 12) }}{% endif %}
+      7д {{ week_pct_total | pct }}
+    </span>
+    {% endif %}
+  </div>
+  <p class="ticker-card__story">{{ story }}</p>
+  <div class="ticker-card__meta">
+    <span>вход {{ total_cost | money }}</span>
+    {% if portfolio_delta is not none %}
+    <span class="{% if portfolio_delta >= 0 %}delta-up{% else %}delta-down{% endif %}">
+      {% if portfolio_delta > 0 %}+{% endif %}{{ portfolio_delta | money }}
+      {% if portfolio_delta_pct is not none %} ({{ portfolio_delta_pct | pct }}){% endif %}
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+{% if alerts %}
+<div class="notice notice--warn">
+  <div class="notice__text">{{ icons.icon('bell', 14, 'icon--inline') }} {{ alerts[0].message }}</div>
+  <a href="/alerts">мувы →</a>
+</div>
+{% endif %}
+
+<section class="list-section">
+  <div class="list-section__head">
+    <h2>Тикер вещей</h2>
+    <div class="list-section__tools">
+      {% if history_json != '[]' %}
+      <button type="button" class="text-btn" id="toggleChart" aria-expanded="false">{{ icons.icon('chart', 14, 'icon--inline') }} график</button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if history_json != '[]' %}
+  <div class="chart-collapse" id="chartPanel" hidden>
+    <div class="chart-box chart-box--sm"><canvas id="portfolioChart" style="width:100%;height:100%"></canvas></div>
+  </div>
+  {% endif %}
+
+  {% if rows %}
+  <ul class="thing-list">
+    {% for row in rows %}
+    <li>
+      <a class="thing" href="/items/{{ row.item.id }}">
+        <div class="thing__icon thing__icon--{{ row.item.category }}" aria-hidden="true">
+          {{ icons.cat_icon(row.item.category, 20) }}
+        </div>
+        <div class="thing__left">
+          <div class="thing__name">{{ row.name }}</div>
+          <div class="thing__meta">
+            {{ CONDITION_LABELS.get(row.item.condition, row.item.condition) }}
+            · {{ row.item.location_city }}
+            {% if row.item.override_mid is not none %} · своя{% endif %}
+          </div>
+          {% if row.spark_json and row.spark_json != '[]' %}
+          <canvas class="sparkline sparkline--row" data-points='{{ row.spark_json }}' width="72" height="20"></canvas>
+          {% endif %}
+        </div>
+        <div class="thing__right">
+          <div class="thing__price">{{ row.mid | money }}</div>
+          {% if row.week_pct is not none and row.week_pct|abs >= 0.3 %}
+          <span class="pill pill--sm {% if row.week_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+            {% if row.week_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
+            {{ row.week_pct | pct }}
+          </span>
+          {% elif row.delta_pct is not none and row.delta_pct|abs >= 0.3 %}
+          <span class="pill pill--sm {% if row.delta_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+            {% if row.delta_pct >= 0 %}{{ icons.icon('trend-up', 11) }}{% else %}{{ icons.icon('trend-down', 11) }}{% endif %}
+            {{ row.delta_pct | pct }}
+          </span>
+          {% endif %}
+        </div>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-box">
+    <p>Пока пусто. Кинь первую вещь — телефон, ноут или тачку.</p>
+    <a class="btn btn-primary" href="/items/new">{{ icons.icon('plus', 16) }} Добавить вещь</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const history = {{ history_json | safe }};
+  document.querySelectorAll(".sparkline").forEach((el) => {
+    try {
+      const pts = JSON.parse(el.getAttribute("data-points") || "[]");
+      drawSparkline(el, pts);
+    } catch (e) {}
+  });
+  const btn = document.getElementById("toggleChart");
+  const panel = document.getElementById("chartPanel");
+  let drawn = false;
+  if (btn && panel) {
+    btn.addEventListener("click", () => {
+      const open = panel.hasAttribute("hidden");
+      if (open) {
+        panel.removeAttribute("hidden");
+        btn.setAttribute("aria-expanded", "true");
+        btn.innerHTML = "скрыть";
+        if (!drawn) {
+          drawLineChart(
+            "portfolioChart",
+            history.map((h) => ({ label: h.date, value: h.total })),
+            { format: money }
+          );
+          drawn = true;
+        }
+      } else {
+        panel.setAttribute("hidden", "");
+        btn.setAttribute("aria-expanded", "false");
+        btn.innerHTML = "график";
+      }
+    });
+  }
+</script>
+{% endblock %}

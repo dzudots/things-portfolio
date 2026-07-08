@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Метрики — Вещи{% endblock %}
+{% block content %}
+<section style="margin:0.5rem 0 1.25rem">
+  <h1 style="font-family:var(--font-display);font-size:1.8rem;letter-spacing:-0.03em;margin:0">Метрики успеха</h1>
+  <p class="muted">Weekly retention, вещи на пользователя, override rate (доверие к оценке).</p>
+</section>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="label">WAU (portfolio)</div>
+    <div class="value">{{ metrics.weekly_active_users }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Weekly retention</div>
+    <div class="value">
+      {% if metrics.weekly_retention is none %}n/a{% else %}{{ (metrics.weekly_retention * 100) | round(1) }}%{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="label">Override rate</div>
+    <div class="value">{{ (metrics.override_rate * 100) | round(1) }}%</div>
+  </div>
+</div>
+
+<div class="panel">
+  <ul class="item-list">
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Пользователей: <strong>{{ metrics.total_users }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Вещей всего: <strong>{{ metrics.total_items }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Среднее вещей / user: <strong>{{ metrics.avg_items_per_user }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Добавлений за 7д: <strong>{{ metrics.item_adds_last_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Обновлений состояния за 7д: <strong>{{ metrics.condition_updates_last_7d }}</strong></li>
+    <li style="padding:0.75rem 0;border-top:1px solid var(--line)">Overrides: <strong>{{ metrics.override_count }}</strong></li>
+  </ul>
+</div>
+
+<div class="panel">
+  <strong>Сигналы</strong>
+  <p class="muted">
+    retention_ok: {{ metrics.success_signals.retention_ok }} ·
+    engagement_ok: {{ metrics.success_signals.engagement_ok }} ·
+    trust_ok (override &lt; 35%): {{ metrics.success_signals.trust_ok }}
+  </p>
+  <p class="muted" style="margin-bottom:0">
+    JSON: <a href="/api/metrics">/api/metrics</a>
+  </p>
+</div>
+{% endblock %}

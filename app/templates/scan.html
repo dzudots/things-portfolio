@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Скан фото — Вещи{% endblock %}
+{% block content %}
+{% import "icons.html" as icons %}
+
+<section class="scan-hero">
+  <p class="eyebrow">AI · comps</p>
+  <h1>Сфоткай — узнай цену</h1>
+  <p class="lede">
+    Фото → распознавание модели → диапазон по объявлениям (Avito/Kufar-style comps).
+    Не маркетплейс: только оценка для твоего портфеля.
+  </p>
+  <p class="muted small">
+    Сегодня: <strong>{{ scans_used }}</strong> / {{ scans_limit }}
+    · режим: {% if ai_ready %}live API{% else %}mock (без ключа){% endif %}
+  </p>
+</section>
+
+{% if error %}
+  <div class="banner banner-warn" role="alert">{{ error }}</div>
+{% endif %}
+
+<form class="scan-form" action="/scan" method="post" enctype="multipart/form-data">
+  <label class="scan-drop" for="photo">
+    <span class="scan-drop__icon">{{ icons.icon('camera', 36) }}</span>
+    <span class="scan-drop__title">Выбери или сделай фото</span>
+    <span class="scan-drop__hint">JPEG / PNG / WebP · до 4 МБ</span>
+    <input id="photo" name="photo" type="file" accept="image/*" capture="environment" required />
+  </label>
+  <button class="btn btn-primary" type="submit">Оценить по фото</button>
+</form>
+
+{% if result %}
+<section class="scan-result">
+  <h2>Результат</h2>
+  <div class="scan-result__grid">
+    <div>
+      <div class="muted small">Распознано</div>
+      <div class="scan-result__title">
+        {{ result.brand }} {{ result.model_hint }}
+      </div>
+      <div class="muted small">
+        {{ CATEGORY_LABELS.get(result.category, result.category) }}
+        · состояние {{ CONDITION_LABELS.get(result.condition_guess, result.condition_guess) }}
+        · conf {{ '%.0f'|format((result.identify_confidence or 0) * 100) }}%
+      </div>
+    </div>
+    <div>
+      <div class="muted small">Оценка рынка</div>
+      {% if result.mid %}
+        <div class="scan-result__price">{{ result.mid | money }}</div>
+        <div class="muted small">
+          {{ result.low | money }} — {{ result.high | money }}
+          · {{ CONFIDENCE_LABELS.get(result.valuation_confidence, result.valuation_confidence) }}
+          · {{ result.comps_count }} comps
+        </div>
+      {% else %}
+        <div class="scan-result__price">—</div>
+        <div class="muted small">Нет матча в каталоге или мало comps</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if result.result and result.result.match and result.result.match.candidates %}
+  <div class="scan-cands">
+    <div class="muted small">Кандидаты в каталоге</div>
+    <ul>
+      {% for c in result.result.match.candidates[:5] %}
+      <li>
+        {{ c.label }}
+        <span class="muted">{{ '%.0f'|format(c.score * 100) }}%</span>
+        {% if result.matched_model_id == c.id %}
+          <a class="linkish" href="/items/new?model_id={{ c.id }}">в портфель →</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if result.result and result.result.billing %}
+  <p class="muted small scan-bill">
+    Стоимость запроса (с наценкой {{ result.result.billing.markup_pct }}%):
+    ~{{ '%.2f'|format(result.result.billing.billed_rub) }} ₽
+    {% if result.result.billing.mock %} · mock{% endif %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if recent %}
+<section class="scan-history">
+  <h2>Недавние сканы</h2>
+  <ul class="scan-history__list">
+    {% for j in recent %}
+    <li>
+      <span>{{ j.brand }} {{ j.model_hint }}</span>
+      <span class="muted">
+        {% if j.mid %}{{ j.mid | money }}{% else %}—{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<p class="muted small">
+  API: <code>POST /api/scan</code> (multipart <code>photo</code>) ·
+  usage: <code>GET /api/usage</code> ·
+  health: <code>GET /health</code>
+</p>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Достижения — Вещи{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1 class="page-title">Достижения</h1>
+    <p class="page-sub">Спокойные бейджи за полезные привычки. Без рейтинга.</p>
+  </div>
+</section>
+
+<div class="stat-row" style="grid-template-columns:1fr">
+  <div class="stat">
+    <div class="label">Прогресс</div>
+    <div class="value">{{ progress.unlocked_count }} / {{ progress.total }}</div>
+    <div class="progress-bar" style="margin-top:0.75rem">
+      <div class="progress-bar__fill" style="width:{{ (100 * progress.unlocked_count / progress.total) | round(1) }}%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="achieve-grid">
+  {% for a in progress.list %}
+  <article class="achieve-card {% if a.unlocked %}achieve-card--on{% else %}achieve-card--off{% endif %}">
+    <div class="achieve-card__icon">{{ a.icon }}</div>
+    <div>
+      <div class="achieve-card__title">{{ a.title }}</div>
+      <div class="achieve-card__desc">
+        {% if a.unlocked %}{{ a.description }}{% else %}{{ a.hint }}{% endif %}
+      </div>
+    </div>
+    {% if a.unlocked %}<span class="badge">открыто</span>{% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

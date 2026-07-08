@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Конфиденциальность — Вещи{% endblock %}
+{% block content %}
+<section style="margin:0.5rem 0 1.25rem">
+  <h1 style="font-family:var(--font-display);font-size:clamp(1.6rem,5vw,2.2rem);letter-spacing:-0.03em;margin:0">
+    Конфиденциальность
+  </h1>
+  <p class="muted">Личный учёт имущества. Не реестр и не налоговый канал.</p>
+</section>
+
+<div class="panel">
+  <h2 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 0.75rem">Зачем сервис</h2>
+  <p>
+    «Вещи» — это <strong>личный домашний учёт</strong>: сколько примерно стоят ваши вещи
+    на вторичном рынке. Это не инвестиционная платформа, не маркетплейс и
+    <strong>не система налоговой отчётности</strong>. Мы не передаём портфель в ФНС,
+    банки или страховые «по умолчанию».
+  </p>
+</div>
+
+<div class="panel">
+  <h2 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 0.75rem">Что храним</h2>
+  <ul class="privacy-list">
+    <li>Email и хеш пароля — для входа</li>
+    <li>Карточки вещей: модель из справочника, состояние, город/регион</li>
+    <li>Цена покупки, заметки, своя оценка — <strong>в зашифрованном виде</strong></li>
+    <li>История рыночных оценок (диапазон mid) — только внутри вашего аккаунта</li>
+  </ul>
+  <p class="muted" style="margin-bottom:0">
+    Мы <strong>намеренно не собираем</strong> ИНН, паспорт, VIN, серийные номера,
+    точный адрес и другие идентификаторы «для отчётности».
+  </p>
+</div>
+
+<div class="panel">
+  <h2 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 0.75rem">Как защищаем</h2>
+  <ul class="privacy-list">
+    <li>Изоляция: чужой аккаунт не видит ваши вещи (все запросы по owner_id)</li>
+    <li>Шифрование полей at rest (Fernet/AES) для денег и заметок</li>
+    <li>Рыночные comps — обезличенные агрегаты, не привязаны к личности</li>
+    <li>Аналитика продукта без сумм портфеля в событиях</li>
+    <li>Экспорт и полное удаление аккаунта — в настройках</li>
+  </ul>
+</div>
+
+<div class="panel">
+  <h2 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 0.75rem">Налоги и госорганы</h2>
+  <p>
+    Оценки в приложении — ориентир по рынку б/у, не кадастровая и не официальная
+    оценка имущества. Сервис <strong>не формирует декларации</strong> и не является
+    каналом передачи данных в налоговую. Если закон обяжет раскрыть данные
+    по запросу уполномоченного органа — это отдельная юридическая процедура,
+    а не «фоновый мониторинг пользователей».
+  </p>
+  <p class="muted" style="margin-bottom:0">
+    Это не юридическая консультация. При сомнениях обратитесь к специалисту.
+  </p>
+</div>
+
+<div class="panel">
+  <h2 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 0.75rem">Ваши права</h2>
+  <p style="margin-bottom:0">
+    В разделе <a href="/account">Аккаунт</a>: скачать JSON-экспорт, отключить алерты/дайджест,
+    удалить аккаунт и все связанные данные безвозвратно.
+  </p>
+</div>
+{% endblock %}

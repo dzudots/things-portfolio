@@ -1,0 +1,33 @@
+{
+  "name": "Вещи — портфель имущества",
+  "short_name": "Вещи",
+  "description": "Личный мониторинг стоимости вещей. Конфиденциально.",
+  "start_url": "/portfolio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#e8efe9",
+  "theme_color": "#0e1a17",
+  "lang": "ru",
+  "categories": ["finance", "lifestyle"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

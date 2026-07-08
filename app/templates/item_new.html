@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Добавить вещь — Вещи{% endblock %}
+{% block content %}
+{% import "icons.html" as icons %}
+<a class="back-link" href="/portfolio">{{ icons.icon('chevron-left', 16, 'icon--inline') }} Портфель</a>
+
+<section class="app-bar app-bar--tight">
+  <div>
+    <h1 class="app-bar__title">Новая вещь</h1>
+    <p class="app-bar__meta">3 коротких шага</p>
+  </div>
+</section>
+
+{% if error %}<div class="notice notice--error">{{ error }}</div>{% endif %}
+
+{% set step = 1 if not category else (2 if not selected else 3) %}
+<div class="steps" aria-label="Шаги">
+  <div class="step {% if step > 1 %}is-done{% elif step == 1 %}is-current{% endif %}"><span class="step-num">1</span> Тип</div>
+  <div class="step {% if step > 2 %}is-done{% elif step == 2 %}is-current{% endif %}"><span class="step-num">2</span> Модель</div>
+  <div class="step {% if step == 3 %}is-current{% endif %}"><span class="step-num">3</span> Состояние</div>
+</div>
+
+{% if not category %}
+<div class="choice-list">
+  <a class="choice" href="/items/new?category=smartphone">
+    <span class="choice__icon">{{ icons.icon('phone', 22) }}</span>
+    <span class="choice__body">
+      <strong>Смартфон</strong>
+      <span>iPhone, Samsung, Xiaomi…</span>
+    </span>
+  </a>
+  <a class="choice" href="/items/new?category=laptop">
+    <span class="choice__icon">{{ icons.icon('laptop', 22) }}</span>
+    <span class="choice__body">
+      <strong>Ноутбук</strong>
+      <span>MacBook, ASUS, ThinkPad…</span>
+    </span>
+  </a>
+  <a class="choice" href="/items/new?category=car">
+    <span class="choice__icon">{{ icons.icon('car', 22) }}</span>
+    <span class="choice__body">
+      <strong>Авто</strong>
+      <span>Camry, Solaris, Rio…</span>
+    </span>
+  </a>
+</div>
+{% elif not selected %}
+<section class="block">
+  <a class="back-link" href="/items/new">{{ icons.icon('chevron-left', 16, 'icon--inline') }} Тип</a>
+  <h2 class="block__title">{{ icons.cat_icon(category, 18) }} {{ CATEGORY_LABELS.get(category, category) }}</h2>
+  <form class="form" method="get" action="/items/new">
+    <input type="hidden" name="category" value="{{ category }}" />
+    <label class="sr-only" for="modelSearch">Поиск</label>
+    <div class="search-field">
+      {{ icons.icon('search', 18, 'search-field__icon') }}
+      <input id="modelSearch" name="q" value="{{ q }}" placeholder="Поиск: iPhone 14 Pro" autofocus enterkeyhint="search" />
+    </div>
+    <button class="btn btn-secondary btn-block" type="submit">Найти</button>
+  </form>
+  <div class="choice-list choice-list--tight">
+    {% for m in models %}
+    <a class="choice choice--sm" href="/items/new?category={{ category }}&model_id={{ m.id }}{% if q %}&q={{ q }}{% endif %}">
+      <span class="choice__icon choice__icon--sm">{{ icons.cat_icon(category, 18) }}</span>
+      <span class="choice__body">
+        <strong>{{ m.brand }}</strong>
+        <span>{{ m.name }}</span>
+      </span>
+    </a>
+    {% else %}
+    <p class="help">Ничего не найдено. Сбросьте поиск или выберите другое слово.</p>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="block">
+  <a class="back-link" href="/items/new?category={{ category }}">{{ icons.icon('chevron-left', 16, 'icon--inline') }} Модели</a>
+  <h2 class="block__title">{{ icons.cat_icon(category, 18) }} {{ selected.brand }} {{ selected.name }}</h2>
+  <form class="form" method="post" action="/items/new">
+    <input type="hidden" name="category" value="{{ category }}" />
+    <input type="hidden" name="canonical_model_id" value="{{ selected.id }}" />
+
+    <div>
+      <div class="field-label">Состояние</div>
+      <div class="condition-grid">
+        {% for c in conditions %}
+        <label class="condition-option">
+          <input type="radio" name="condition" value="{{ c.value }}" {% if c.value == 'good' %}checked{% endif %} required />
+          <span>
+            <strong>{{ CONDITION_LABELS[c.value] }}</strong>
+            <span>{{ CONDITION_HINTS.get(c.value, '') }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if defects %}
+    <div>
+      <div class="field-label">Дефекты</div>
+      <div class="chips">
+        {% for d in defects %}
+        <label class="chip"><input type="checkbox" name="defect_{{ d }}" /> {{ DEFECT_LABELS.get(d, d) }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form-row">
+      <label>Город
+        <input name="location_city" value="Москва" required autocomplete="address-level2" />
+      </label>
+      <label>Регион
+        <input name="location_region" value="Москва" required autocomplete="address-level1" />
+      </label>
+    </div>
+    <label>Цена покупки, ₽
+      <input name="cost_basis" inputmode="decimal" placeholder="необязательно" />
+    </label>
+    <label>Заметка
+      <input name="notes" placeholder="необязательно" />
+    </label>
+    <button class="btn btn-primary btn-block" type="submit">Сохранить и оценить</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

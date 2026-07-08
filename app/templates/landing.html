@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Вещи — твой стак имущества{% endblock %}
+{% block content %}
+{% import "icons.html" as icons %}
+<section class="hero">
+  <p class="eyebrow">для зумеров и альфы · СНГ</p>
+  <h1 class="hero-brand">Вещи<em>.</em></h1>
+  <p>
+    Тикер твоих вещей: телефон, ноут, тачка.
+    Как StockX / WatchCharts — только для того, что уже у тебя дома.
+  </p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="/register">собрать стак</a>
+    <a class="btn btn-secondary" href="/login">войти</a>
+  </div>
+  <div class="hero-points">
+    <div class="hero-point"><strong>{{ icons.icon('chart', 16, 'icon--inline') }} live mid</strong><span>диапазон + % за 7 дней</span></div>
+    <div class="hero-point"><strong>{{ icons.icon('lock', 16, 'icon--inline') }} приватно</strong><span>шифруем, не для налоговой</span></div>
+    <div class="hero-point"><strong>{{ icons.icon('phone', 16, 'icon--inline') }} на телефоне</strong><span>PWA на Домой</span></div>
+  </div>
+</section>
+{% endblock %}

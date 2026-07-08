@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'register' %}Регистрация{% else %}Вход{% endif %} — Вещи{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:440px;margin:1.25rem auto">
+  <h1 class="page-title" style="font-size:1.7rem;margin-bottom:0.35rem">
+    {% if mode == 'register' %}Регистрация{% else %}Вход{% endif %}
+  </h1>
+  <p class="muted" style="margin-top:0">
+    {% if mode == 'register' %}Личный портфель. Данные шифруются.
+    {% else %}Демо: demo@things.local / demo1234{% endif %}
+  </p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form class="form" method="post" action="{% if mode == 'register' %}/register{% else %}/login{% endif %}" style="margin-top:1rem">
+    {% if mode == 'register' %}
+    <label>Имя
+      <input name="display_name" placeholder="Как к вам обращаться" autocomplete="nickname" />
+    </label>
+    {% endif %}
+    <label>Email
+      <input type="email" name="email" required placeholder="you@example.com" autocomplete="email" value="{% if mode == 'login' %}demo@things.local{% endif %}" />
+    </label>
+    <label>Пароль
+      <input type="password" name="password" required minlength="6" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" placeholder="{% if mode == 'login' %}demo1234{% endif %}" />
+    </label>
+    {% if mode == 'register' %}
+    <label class="chip" style="justify-content:flex-start;font-weight:500">
+      <input type="checkbox" name="accept_privacy" required />
+      Принимаю <a href="/privacy" target="_blank" rel="noopener">политику</a>
+      (личный учёт, не налоговая отчётность)
+    </label>
+    {% endif %}
+    <button class="btn btn-primary btn-block" type="submit">
+      {% if mode == 'register' %}Создать аккаунт{% else %}Войти{% endif %}
+    </button>
+  </form>
+  <p class="muted" style="margin-top:1rem;margin-bottom:0">
+    {% if mode == 'register' %}
+      Уже есть аккаунт? <a href="/login">Войти</a>
+    {% else %}
+      Нет аккаунта? <a href="/register">Регистрация</a>
+    {% endif %}
+  </p>
+</div>
+{% endblock %}

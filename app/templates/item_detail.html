@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ item.model | model_label }} — Вещи{% endblock %}
+{% block content %}
+{% import "icons.html" as icons %}
+<a class="back-link" href="/portfolio">{{ icons.icon('chevron-left', 16, 'icon--inline') }} назад в стак</a>
+
+<section class="app-bar app-bar--tight">
+  <div>
+    <p class="eyebrow">{{ icons.cat_icon(item.category, 12) }} {{ CATEGORY_LABELS.get(item.category, item.category) }}</p>
+    <h1 class="app-bar__title app-bar__title--sm">{{ item.model | model_label }}</h1>
+    <p class="app-bar__meta">
+      {{ CONDITION_LABELS.get(item.condition, item.condition) }} · {{ item.location_city }}
+    </p>
+  </div>
+  {% if week_pct is not none and week_pct|abs >= 0.3 %}
+  <span class="pill {% if week_pct >= 0 %}pill--up{% else %}pill--down{% endif %}">
+    7д {{ week_pct | pct }}
+  </span>
+  {% endif %}
+</section>
+
+<section class="value-block">
+  <div class="value-block__label">last ask · рынок</div>
+  <div class="value-block__mid">{{ mid | money }}</div>
+  <div class="value-block__range">
+    {{ market.low | money }} – {{ market.high | money }}
+    {% if market.insufficient_data %}
+      <span class="tag tag--warn">мало comps</span>
+    {% else %}
+      <span class="tag">{{ CONFIDENCE_LABELS.get(market.confidence, market.confidence) }} conf</span>
+    {% endif %}
+  </div>
+  {% if item.cost_basis is not none %}
+  <div class="value-block__pnl">
+    купил за {{ item.cost_basis | money }}
+    {% if delta is not none %}
+      · <span class="{% if delta >= 0 %}delta-up{% else %}delta-down{% endif %}">{% if delta > 0 %}+{% endif %}{{ delta | money }}{% if delta_pct is not none %} · {{ delta_pct | pct }}{% endif %}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if item.override_mid is not none %}
+  <div class="value-block__note">в портфеле твоя оценка: {{ item.override_mid | money }}</div>
+  {% endif %}
+  <details class="why-details">
+    <summary>почему такая цена</summary>
+    <p>
+      {{ market.comps_count }} похожих объявлений,
+      бакет «{{ CONDITION_LABELS.get(item.condition, item.condition) }}»,
+      {% if market.geo_level == 'city' %}город{% elif market.geo_level == 'region' %}регион{% else %}страна{% endif %}
+      {% if item.defect_list() %}
+        · дефекты:
+        {% for d in item.defect_list() %}{{ DEFECT_LABELS.get(d, d) }}{% if not loop.last %}, {% endif %}{% endfor %}
+      {% endif %}
+    </p>
+  </details>
+</section>
+
+{% if history_json != '[]' %}
+<section class="block">
+  <div class="block__head"><h2>тренд mid</h2></div>
+  <div class="chart-box chart-box--sm"><canvas id="itemChart" style="width:100%;height:100%"></canvas></div>
+</section>
+{% endif %}
+
+<details class="block block--details">
+  <summary class="block__summary">поменять состояние</summary>
+  <form class="form" method="post" action="/items/{{ item.id }}/condition">
+    <div class="condition-grid">
+      {% for c in conditions %}
+      <label class="condition-option">
+        <input type="radio" name="condition" value="{{ c.value }}" {% if c.value == item.condition %}checked{% endif %} />
+        <span>
+          <strong>{{ CONDITION_LABELS[c.value] }}</strong>
+          <span>{{ CONDITION_HINTS.get(c.value, '') }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+    {% if defects %}
+    <div>
+      <div class="field-label">дефекты</div>
+      <div class="chips">
+        {% for d in defects %}
+        <label class="chip">
+          <input type="checkbox" name="defect_{{ d }}" {% if d in item_defects %}checked{% endif %} />
+          {{ DEFECT_LABELS.get(d, d) }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <button class="btn btn-secondary btn-block" type="submit">пересчитать</button>
+  </form>
+</details>
+
+<details class="block block--details">
+  <summary class="block__summary">своя оценка</summary>
+  <p class="help">если рынок кривой — поставь свою mid. история comps останется.</p>
+  <form class="form form-inline" method="post" action="/items/{{ item.id }}/override">
+    <label>сумма, ₽
+      <input name="override_mid" inputmode="decimal" placeholder="{{ market.mid }}" value="{% if item.override_mid is not none %}{{ item.override_mid | int }}{% endif %}" />
+    </label>
+    <button class="btn btn-secondary" type="submit">ок</button>
+  </form>
+</details>
+
+<form method="post" action="/items/{{ item.id }}/delete" onsubmit="return confirm('Удалить вещь?');" class="danger-zone">
+  <button class="btn btn-danger btn-block" type="submit">удалить</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const history = {{ history_json | safe }};
+  drawLineChart(
+    "itemChart",
+    history.map((h) => ({ label: h.date, value: h.mid })),
+    { format: money }
+  );
+</script>
+{% endblock %}

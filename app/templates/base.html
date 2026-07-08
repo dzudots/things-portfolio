@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e1a17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Вещи" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Личный портфель имущества. Конфиденциально." />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png" />
+  <title>{% block title %}Вещи{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=7" />
+</head>
+<body>
+  {% import "icons.html" as icons %}
+  {% set path = request.url.path %}
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="{% if user %}/portfolio{% else %}/{% endif %}">Вещи<span>.</span></a>
+      <nav class="nav desktop-nav" aria-label="Меню">
+        {% if user %}
+          <a href="/portfolio" class="{% if path.startswith('/portfolio') or path.startswith('/items/') %}is-active{% endif %}">{{ icons.icon('portfolio', 16) }} Портфель</a>
+          <a href="/scan" class="{% if path.startswith('/scan') %}is-active{% endif %}">{{ icons.icon('camera', 16) }} Скан</a>
+          <a href="/achievements" class="{% if path.startswith('/achievements') %}is-active{% endif %}">{{ icons.icon('badge', 16) }} Бейджи</a>
+          <a href="/alerts" class="{% if path.startswith('/alerts') %}is-active{% endif %}">{{ icons.icon('bell', 16) }} Алерты</a>
+          <a href="/account" class="{% if path.startswith('/account') %}is-active{% endif %}">{{ icons.icon('user', 16) }} Аккаунт</a>
+          <form action="/logout" method="post" style="display:inline">
+            <button class="linkish" type="submit">{{ icons.icon('logout', 16) }} Выйти</button>
+          </form>
+        {% else %}
+          <a href="/privacy">{{ icons.icon('lock', 16) }} Конфиденциальность</a>
+          <a href="/login">Войти</a>
+          <a class="btn btn-primary btn-compact" href="/register">Регистрация</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    <main>{% block content %}{% endblock %}</main>
+
+    <p class="footer-note">
+      Личный учёт · данные шифруются · <a href="/privacy">политика</a>
+    </p>
+  </div>
+
+  {% if user %}
+  <nav class="bottom-nav" aria-label="Навигация">
+    <a href="/portfolio" class="bottom-nav__item {% if path.startswith('/portfolio') or (path.startswith('/items/') and not path.startswith('/items/new')) %}is-active{% endif %}">
+      <span class="bottom-nav__icon">{{ icons.icon('portfolio', 22) }}</span><span>Портфель</span>
+    </a>
+    <a href="/scan" class="bottom-nav__item bottom-nav__item--accent {% if path.startswith('/scan') %}is-active{% endif %}">
+      <span class="bottom-nav__icon">{{ icons.icon('camera', 22) }}</span><span>Скан</span>
+    </a>
+    <a href="/items/new" class="bottom-nav__item {% if path.startswith('/items/new') %}is-active{% endif %}">
+      <span class="bottom-nav__icon">{{ icons.icon('plus', 22) }}</span><span>Добавить</span>
+    </a>
+    <a href="/account" class="bottom-nav__item {% if path.startswith('/account') %}is-active{% endif %}">
+      <span class="bottom-nav__icon">{{ icons.icon('user', 22) }}</span><span>Ещё</span>
+    </a>
+  </nav>
+  {% endif %}
+
+  {% if achievement_toast is defined and achievement_toast %}
+  <div id="achieveToast" class="achieve-toast" role="status" aria-live="polite">
+    {% for a in achievement_toast[:2] %}
+    <div class="achieve-toast__item">
+      <span class="achieve-toast__icon">{{ icons.icon('badge', 22) }}</span>
+      <div>
+        <div class="achieve-toast__label">Достижение</div>
+        <div class="achieve-toast__title">{{ a.title }}</div>
+        <div class="achieve-toast__desc">{{ a.description }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    setTimeout(() => {
+      const el = document.getElementById("achieveToast");
+      if (el) el.classList.add("achieve-toast--hide");
+    }, 4500);
+  </script>
+  {% endif %}
+
+  <script src="/static/charts.js?v=2"></script>
+  <script src="/static/pwa-install.js?v=1"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

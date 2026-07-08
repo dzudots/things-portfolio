@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Алерты — Вещи{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1 class="page-title">Алерты</h1>
+    <p class="page-sub">Изменения рыночной оценки и недельные дайджесты</p>
+  </div>
+  <form method="post" action="/alerts/read">
+    <button class="btn btn-secondary" type="submit" style="padding:0.5rem 1rem;font-size:0.88rem;min-height:auto">Прочитать все</button>
+  </form>
+</section>
+
+<div class="panel">
+  <strong>Изменения цены</strong>
+  {% if alerts %}
+  <ul class="item-list">
+    {% for a in alerts %}
+    <li style="padding:0.9rem 0.15rem;border-top:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start">
+        <div>
+          <div class="item-title">{{ a.message }}</div>
+          <div class="item-meta">{{ a.created_at.strftime('%d.%m.%Y %H:%M') }} UTC
+            {% if not a.read %}<span class="badge">новое</span>{% endif %}
+          </div>
+        </div>
+        <div class="item-price {% if a.direction == 'up' %}delta-up{% else %}delta-down{% endif %}">
+          {% if a.direction == 'up' %}+{% endif %}{{ '%.1f'|format(a.change_pct) }}%
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Пока тихо. Алерты появятся, когда mid сдвинется сильнее вашего порога.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <strong>Недельные дайджесты</strong>
+  {% if digests %}
+  <ul class="item-list">
+    {% for d in digests %}
+    <li style="padding:0.9rem 0.15rem;border-top:1px solid var(--line)">
+      <div class="item-title">Неделя с {{ d.week_start }}</div>
+      <div class="item-meta">
+        Итого {{ d.total_mid | money }}
+        · Δ
+        <span class="{% if d.delta_week >= 0 %}delta-up{% else %}delta-down{% endif %}">
+          {% if d.delta_week > 0 %}+{% endif %}{{ d.delta_week | money }}
+        </span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Дайджест собирается по понедельникам. Можно форсировать через API для теста.</p>
+  {% endif %}
+</div>
+{% endblock %}

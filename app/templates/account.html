@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Аккаунт — Вещи{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1 class="page-title">Аккаунт</h1>
+    <p class="page-sub">{{ user.email }} · данные портфеля только ваши</p>
+  </div>
+</section>
+
+{% if saved %}<div class="success-banner">Сохранено.</div>{% endif %}
+{% if error %}<div class="error" style="margin-bottom:1rem">{{ error }}</div>{% endif %}
+
+<div class="panel">
+  <strong>Профиль и уведомления</strong>
+  <form class="form" method="post" action="/account" style="margin-top:0.75rem">
+    <label>Отображаемое имя
+      <input name="display_name" value="{{ user.display_name }}" />
+    </label>
+    <label>Порог алерта, %
+      <input name="alert_threshold_pct" inputmode="decimal" value="{{ user.alert_threshold_pct }}" />
+    </label>
+    <label class="chip" style="justify-content:flex-start">
+      <input type="checkbox" name="alerts_enabled" {% if user.alerts_enabled %}checked{% endif %} />
+      Алерты при изменении цены
+    </label>
+    <label class="chip" style="justify-content:flex-start">
+      <input type="checkbox" name="digest_enabled" {% if user.digest_enabled %}checked{% endif %} />
+      Еженедельный дайджест портфеля
+    </label>
+    <button class="btn btn-primary" type="submit">Сохранить</button>
+  </form>
+</div>
+
+<div class="panel">
+  <strong>Конфиденциальность</strong>
+  <p class="muted">Цена покупки и заметки хранятся в зашифрованном виде. Мы не собираем ИНН/VIN/паспорт.</p>
+  <p><a href="/privacy">Полная политика</a> · <a href="/achievements">Достижения</a></p>
+  <a class="btn btn-secondary" href="/account/export">Скачать экспорт (JSON)</a>
+</div>
+
+<div class="panel">
+  <strong>Удалить аккаунт</strong>
+  <p class="muted">Безвозвратно удалит вещи, оценки, алерты и события. Введите УДАЛИТЬ.</p>
+  <form class="form" method="post" action="/account/delete" onsubmit="return confirm('Удалить аккаунт навсегда?');">
+    <label>Подтверждение
+      <input name="confirm" placeholder="УДАЛИТЬ" autocomplete="off" />
+    </label>
+    <button class="btn btn-danger" type="submit">Удалить всё</button>
+  </form>
+</div>
+{% endblock %}
