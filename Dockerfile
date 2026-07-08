@@ -14,8 +14,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Bust layer cache when app code changes (Railway sometimes reuses stale COPY layers)
-ARG CACHE_BUST=1
-RUN echo "cache_bust=${CACHE_BUST}"
+ARG CACHE_BUST=20260709-pro2
+RUN echo "cache_bust=${CACHE_BUST}" > /tmp/cache_bust.txt && cat /tmp/cache_bust.txt
 
 COPY app ./app
 COPY docs ./docs

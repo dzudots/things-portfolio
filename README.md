@@ -108,3 +108,5 @@ API: `POST /api/scan` (multipart `photo`), `GET /api/usage`, `GET /health`.
 ### Health
 
 `GET /health` → `{"ok": true, "db_ok": true, "ai_provider_ready": bool, "telegram_configured": bool, "product": "Стак"}`. При недоступной БД — HTTP 503, Railway/Docker не считают инстанс здоровым.
+<!-- deploy: 2026-07-09-pro2 -->
+
