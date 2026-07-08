@@ -1,0 +1,11 @@
+*
+!app/
+!app/**
+!docs/
+!docs/**
+!tests/
+!tests/**
+!requirements.txt
+!README.md
+!Dockerfile
+!railway.toml

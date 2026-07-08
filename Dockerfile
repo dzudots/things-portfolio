@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Bust layer cache when app code changes (Railway sometimes reuses stale COPY layers)
+ARG CACHE_BUST=1
+RUN echo "cache_bust=${CACHE_BUST}"
+
 COPY app ./app
 COPY docs ./docs
 COPY tests ./tests
